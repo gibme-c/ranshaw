@@ -1,0 +1,19 @@
+# Build directories
+build/
+build-gcc/
+cmake-build-*/
+
+# SageMath auto-generated preparsed files
+*.sage.py
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+fcmp-*/
