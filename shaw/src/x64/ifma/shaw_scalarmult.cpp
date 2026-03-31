@@ -161,15 +161,8 @@ static inline void shaw_dbl_fq10(fq10 rX, fq10 rY, fq10 rZ, const fq10 pX, const
 /* Cost: 7M + 4S (fq10 ops)                                          */
 /* ------------------------------------------------------------------ */
 
-static inline void shaw_madd_fq10(
-    fq10 rX,
-    fq10 rY,
-    fq10 rZ,
-    const fq10 pX,
-    const fq10 pY,
-    const fq10 pZ,
-    const fq10 qx,
-    const fq10 qy)
+static inline void
+    shaw_madd_fq10(fq10 rX, fq10 rY, fq10 rZ, const fq10 pX, const fq10 pY, const fq10 pZ, const fq10 qx, const fq10 qy)
 {
     fq10 Z1Z1, U2, S2, H, HH, I, J, rr, V, t0, t1;
 

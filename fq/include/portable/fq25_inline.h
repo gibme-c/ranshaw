@@ -189,14 +189,6 @@ static RANSHAW_FORCE_INLINE void fq25_carry_reduce(
 static RANSHAW_FORCE_INLINE void fq25_reduce_full(fq_fe out, int64_t t[19])
 {
     int64_t carry;
-    const int64_t g0 = (int64_t)GAMMA_25[0];
-    const int64_t g1 = (int64_t)GAMMA_25[1];
-    const int64_t g2 = (int64_t)GAMMA_25[2];
-    const int64_t g3 = (int64_t)GAMMA_25[3];
-    const int64_t g4 = (int64_t)GAMMA_25[4];
-    /* Pre-doubled odd gamma limbs for offset correction */
-    const int64_t g1_2 = 2 * g1;
-    const int64_t g3_2 = 2 * g3;
 
     /*
      * Carry-propagate t[0..18] into canonical-width limbs.
@@ -262,103 +254,107 @@ static RANSHAW_FORCE_INLINE void fq25_reduce_full(fq_fe out, int64_t t[19])
     int64_t t19 = carry;
 
     /*
-     * First gamma fold: multiply t[10..19] by gamma, add to positions 0..13.
-     * Fully unrolled convolution: t[k] * gamma[j] -> position (k-10+j).
+     * First gamma fold: convolve t[10..19] with gamma, add to t[0..9].
+     * Output positions: 0 through 9 + GAMMA_25_LIMBS - 1.
      *
-     * Offset correction: when BOTH (k) and (j) are odd, double the term.
-     * Even positions (k=10,12,14,16,18): no correction needed.
-     * Odd positions (k=11,13,15,17,19): use g1_2, g3_2 for odd gamma indices.
+     * Offset correction: when BOTH source position (10+k) AND gamma
+     * index j are odd, the product is doubled.
      */
-    int64_t h0 = t[0] + t[10] * g0;
-    int64_t h1 = t[1] + t[10] * g1 + t[11] * g0;
-    int64_t h2 = t[2] + t[10] * g2 + t[11] * g1_2 + t[12] * g0;
-    int64_t h3 = t[3] + t[10] * g3 + t[11] * g2 + t[12] * g1 + t[13] * g0;
-    int64_t h4 = t[4] + t[10] * g4 + t[11] * g3_2 + t[12] * g2 + t[13] * g1_2 + t[14] * g0;
-    int64_t h5 = t[5] + t[11] * g4 + t[12] * g3 + t[13] * g2 + t[14] * g1 + t[15] * g0;
-    int64_t h6 = t[6] + t[12] * g4 + t[13] * g3_2 + t[14] * g2 + t[15] * g1_2 + t[16] * g0;
-    int64_t h7 = t[7] + t[13] * g4 + t[14] * g3 + t[15] * g2 + t[16] * g1 + t[17] * g0;
-    int64_t h8 = t[8] + t[14] * g4 + t[15] * g3_2 + t[16] * g2 + t[17] * g1_2 + t[18] * g0;
-    int64_t h9 = t[9] + t[15] * g4 + t[16] * g3 + t[17] * g2 + t[18] * g1 + t19 * g0;
-    int64_t h10 = t[16] * g4 + t[17] * g3_2 + t[18] * g2 + t19 * g1_2;
-    int64_t h11 = t[17] * g4 + t[18] * g3 + t19 * g2;
-    int64_t h12 = t[18] * g4 + t19 * g3_2;
-    int64_t h13 = t19 * g4;
+    int64_t h[20] = {0};
+    for (int i = 0; i < 10; i++)
+        h[i] = t[i];
+
+    {
+        int64_t overflow[10] = {t[10], t[11], t[12], t[13], t[14], t[15], t[16], t[17], t[18], t19};
+        for (int k = 0; k < 10; k++)
+        {
+            int src_odd = (10 + k) & 1;
+            for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            {
+                int64_t gval = (src_odd && (j & 1)) ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j];
+                h[k + j] += overflow[k] * gval;
+            }
+        }
+    }
 
     /*
-     * Carry-propagate h[0..9], propagating overflow into h[10..13].
+     * Carry-propagate h[0..9], propagating overflow into h[10..].
      */
-    carry = (h0 + (int64_t)(1 << 25)) >> 26;
-    h1 += carry;
-    h0 -= carry << 26;
-    carry = (h1 + (int64_t)(1 << 24)) >> 25;
-    h2 += carry;
-    h1 -= carry << 25;
-    carry = (h2 + (int64_t)(1 << 25)) >> 26;
-    h3 += carry;
-    h2 -= carry << 26;
-    carry = (h3 + (int64_t)(1 << 24)) >> 25;
-    h4 += carry;
-    h3 -= carry << 25;
-    carry = (h4 + (int64_t)(1 << 25)) >> 26;
-    h5 += carry;
-    h4 -= carry << 26;
-    carry = (h5 + (int64_t)(1 << 24)) >> 25;
-    h6 += carry;
-    h5 -= carry << 25;
-    carry = (h6 + (int64_t)(1 << 25)) >> 26;
-    h7 += carry;
-    h6 -= carry << 26;
-    carry = (h7 + (int64_t)(1 << 24)) >> 25;
-    h8 += carry;
-    h7 -= carry << 25;
-    carry = (h8 + (int64_t)(1 << 25)) >> 26;
-    h9 += carry;
-    h8 -= carry << 26;
-    carry = (h9 + (int64_t)(1 << 24)) >> 25;
-    h10 += carry;
-    h9 -= carry << 25;
+    carry = (h[0] + (int64_t)(1 << 25)) >> 26;
+    h[1] += carry;
+    h[0] -= carry << 26;
+    carry = (h[1] + (int64_t)(1 << 24)) >> 25;
+    h[2] += carry;
+    h[1] -= carry << 25;
+    carry = (h[2] + (int64_t)(1 << 25)) >> 26;
+    h[3] += carry;
+    h[2] -= carry << 26;
+    carry = (h[3] + (int64_t)(1 << 24)) >> 25;
+    h[4] += carry;
+    h[3] -= carry << 25;
+    carry = (h[4] + (int64_t)(1 << 25)) >> 26;
+    h[5] += carry;
+    h[4] -= carry << 26;
+    carry = (h[5] + (int64_t)(1 << 24)) >> 25;
+    h[6] += carry;
+    h[5] -= carry << 25;
+    carry = (h[6] + (int64_t)(1 << 25)) >> 26;
+    h[7] += carry;
+    h[6] -= carry << 26;
+    carry = (h[7] + (int64_t)(1 << 24)) >> 25;
+    h[8] += carry;
+    h[7] -= carry << 25;
+    carry = (h[8] + (int64_t)(1 << 25)) >> 26;
+    h[9] += carry;
+    h[8] -= carry << 26;
+    carry = (h[9] + (int64_t)(1 << 24)) >> 25;
+    h[10] += carry;
+    h[9] -= carry << 25;
 
     /*
-     * Carry-propagate h[10..13] to canonical width, including carry out
-     * of h13 into h14. Without this, h13 can be ~49 bits, causing
-     * h13 * gamma[j] to overflow int64_t in the second fold.
+     * Carry-propagate h[10..9+GAMMA_25_LIMBS-1] to canonical width.
+     * Without this, large intermediates can overflow int64_t in the second fold.
      */
-    carry = (h10 + (int64_t)(1 << 25)) >> 26;
-    h11 += carry;
-    h10 -= carry << 26;
-    carry = (h11 + (int64_t)(1 << 24)) >> 25;
-    h12 += carry;
-    h11 -= carry << 25;
-    carry = (h12 + (int64_t)(1 << 25)) >> 26;
-    h13 += carry;
-    h12 -= carry << 26;
-    carry = (h13 + (int64_t)(1 << 24)) >> 25;
-    h13 -= carry << 25;
-    int64_t h14 = carry;
+    {
+        int last = 9 + GAMMA_25_LIMBS - 1;
+        for (int i = 10; i < last; i++)
+        {
+            int width = (i & 1) ? 25 : 26;
+            carry = (h[i] + (1LL << (width - 1))) >> width;
+            h[i + 1] += carry;
+            h[i] -= carry << width;
+        }
+        int last_width = (last & 1) ? 25 : 26;
+        carry = (h[last] + (1LL << (last_width - 1))) >> last_width;
+        h[last] -= carry << last_width;
+        h[last + 1] = carry;
+    }
 
     /*
-     * Second gamma fold: h[10..14] * gamma -> positions 0..8.
+     * Second gamma fold: convolve h[10..9+GAMMA_25_LIMBS] with gamma.
      * All values are now canonical width, so products fit in int64_t.
-     *
-     * Offset corrections:
-     *   h10 at pos 10 (even): no correction
-     *   h11 at pos 11 (odd): double when gamma index j is odd (use g1_2, g3_2)
-     *   h12 at pos 12 (even): no correction
-     *   h13 at pos 13 (odd): double when gamma index j is odd (use g1_2, g3_2)
-     *   h14 at pos 14 (even): no correction
      */
-    h0 += h10 * g0;
-    h1 += h10 * g1 + h11 * g0;
-    h2 += h10 * g2 + h11 * g1_2 + h12 * g0;
-    h3 += h10 * g3 + h11 * g2 + h12 * g1 + h13 * g0;
-    h4 += h10 * g4 + h11 * g3_2 + h12 * g2 + h13 * g1_2 + h14 * g0;
-    h5 += h11 * g4 + h12 * g3 + h13 * g2 + h14 * g1;
-    h6 += h12 * g4 + h13 * g3_2 + h14 * g2;
-    h7 += h13 * g4 + h14 * g3;
-    h8 += h14 * g4;
+    {
+        int nover = GAMMA_25_LIMBS + 1; /* overflow count including carry-out */
+        int64_t over2[11]; /* max 10+1 */
+        for (int i = 0; i < nover; i++)
+        {
+            over2[i] = h[10 + i];
+            h[10 + i] = 0;
+        }
+        for (int k = 0; k < nover; k++)
+        {
+            int src_odd = (10 + k) & 1;
+            for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            {
+                int64_t gval = (src_odd && (j & 1)) ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j];
+                h[k + j] += over2[k] * gval;
+            }
+        }
+    }
 
     /* Final carry reduction */
-    fq25_carry_reduce(out, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
+    fq25_carry_reduce(out, h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], h[8], h[9]);
 }
 
 /*

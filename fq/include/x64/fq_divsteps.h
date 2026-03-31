@@ -149,7 +149,9 @@ struct fq_trans2x2
 static const uint64_t FQ_M62 = (uint64_t(1) << 62) - 1;
 
 /*
- * q = 2^255 - gamma in signed62 representation.
+ * q = 2^255 - gamma in signed62 representation (q-dependent).
+ * These values must be updated when q changes (i.e., when gamma changes).
+ * FQ_NEG_QINV62 auto-derives via constexpr from FQ_MODULUS_S62.
  *
  * q as 4 x uint64_t (LE):
  *   w[0] = 0x6EB6D2727927C79F

@@ -50,16 +50,19 @@ static const uint64_t FQ51_MASK = (1ULL << 51) - 1;
  *   TWO_GAMMA_51[1] = 0x4D226A529E452
  *   TWO_GAMMA_51[2] = 0x204043E
  */
-static const uint64_t GAMMA_51[3] = {0x12D8D86D83861ULL, 0x269135294F229ULL, 0x102021FULL};
+#define GAMMA_51_LIMBS 3
+static const uint64_t GAMMA_51[5] = {0x12D8D86D83861ULL, 0x269135294F229ULL, 0x102021FULL, 0, 0};
 
-static const uint64_t TWO_GAMMA_51[3] = {0x25B1B0DB070C2ULL, 0x4D226A529E452ULL, 0x204043EULL};
+#define TWO_GAMMA_51_LIMBS 3
+static const uint64_t TWO_GAMMA_51[5] = {0x25B1B0DB070C2ULL, 0x4D226A529E452ULL, 0x204043EULL, 0, 0};
 
 /*
- * 2*gamma in radix-2^64 (128 bits = 2 limbs).
+ * 2*gamma in radix-2^64 (4 limbs, full 256-bit width).
  * Used by the 4×64 MULX+ADCX+ADOX multiplication path.
  * 2^256 ≡ 2*gamma (mod q), so the fold multiplies by TWO_GAMMA_64.
  */
-static const uint64_t TWO_GAMMA_64[2] = {0x22925B1B0DB070C2ULL, 0x81010FA69135294FULL};
+#define TWO_GAMMA_64_LIMBS 2
+static const uint64_t TWO_GAMMA_64[4] = {0x22925B1B0DB070C2ULL, 0x81010FA69135294FULL, 0, 0};
 
 /*
  * q in radix-2^51:

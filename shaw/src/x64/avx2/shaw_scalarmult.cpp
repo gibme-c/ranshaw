@@ -148,8 +148,7 @@ static void batch_to_affine(shaw_affine *out, const shaw_jacobian *in, size_t n)
  * Input:  Jacobian (X1:Y1:Z1) in fq10
  * Output: Jacobian (X3:Y3:Z3) in fq10
  */
-static FQ10_AVX2_FORCE_INLINE void
-    shaw_dbl_fq10(fq10 X3, fq10 Y3, fq10 Z3, const fq10 X1, const fq10 Y1, const fq10 Z1)
+static FQ10_AVX2_FORCE_INLINE void shaw_dbl_fq10(fq10 X3, fq10 Y3, fq10 Z3, const fq10 X1, const fq10 Y1, const fq10 Z1)
 {
     fq10 delta, gamma, beta, alpha;
     fq10 t0, t1, t2;
@@ -202,15 +201,8 @@ static FQ10_AVX2_FORCE_INLINE void
  * Input:  Jacobian (X1:Y1:Z1) in fq10, Affine (x2, y2) in fq10
  * Output: Jacobian (X3:Y3:Z3) in fq10
  */
-static FQ10_AVX2_FORCE_INLINE void shaw_madd_fq10(
-    fq10 X3,
-    fq10 Y3,
-    fq10 Z3,
-    const fq10 X1,
-    const fq10 Y1,
-    const fq10 Z1,
-    const fq10 x2,
-    const fq10 y2)
+static FQ10_AVX2_FORCE_INLINE void
+    shaw_madd_fq10(fq10 X3, fq10 Y3, fq10 Z3, const fq10 X1, const fq10 Y1, const fq10 Z1, const fq10 x2, const fq10 y2)
 {
     fq10 Z1Z1, U2, S2, H, HH, I, J, rr, V;
     fq10 t0, t1;

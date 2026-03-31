@@ -36,22 +36,19 @@
 
 #if RANSHAW_SIMD
 #include "ranshaw_dispatch.h"
-static inline void
-    shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
+static inline void shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
 {
     ranshaw_get_dispatch().shaw_scalarmult_vartime(r, scalar, p);
 }
 #elif RANSHAW_PLATFORM_64BIT
 void shaw_scalarmult_vartime_x64(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
-static inline void
-    shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
+static inline void shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
 {
     shaw_scalarmult_vartime_x64(r, scalar, p);
 }
 #else
 void shaw_scalarmult_vartime_portable(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
-static inline void
-    shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
+static inline void shaw_scalarmult_vartime(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p)
 {
     shaw_scalarmult_vartime_portable(r, scalar, p);
 }

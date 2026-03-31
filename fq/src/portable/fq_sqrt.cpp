@@ -26,8 +26,8 @@
 
 #include "portable/fq_sqrt.h"
 
-#include "ranshaw_secure_erase.h"
 #include "portable/fq25_chain.h"
+#include "ranshaw_secure_erase.h"
 
 /*
  * Compute z^((q+1)/4) mod q via optimized addition chain.

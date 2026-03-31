@@ -197,8 +197,7 @@ static int encode_signed_wbit(int16_t *digits, const unsigned char *scalar, int 
  * |digit[k]| == j. This selects the correct table entry per lane without
  * branches.
  */
-static void
-    msm_straus_ifma(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
+static void msm_straus_ifma(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
 {
     // Encode all scalars into signed w=4 digits
     std::vector<int16_t> all_digits(n * 64);
@@ -540,11 +539,7 @@ static void
 
 static const size_t STRAUS_PIPPENGER_CROSSOVER = 16;
 
-void shaw_msm_vartime_ifma(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n)
+void shaw_msm_vartime_ifma(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
 {
     if (n == 0)
     {

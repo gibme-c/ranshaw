@@ -32,9 +32,9 @@
 #ifndef RANSHAW_FQ_UTILS_H
 #define RANSHAW_FQ_UTILS_H
 
-#include "ranshaw_ct_barrier.h"
 #include "fq.h"
 #include "fq_tobytes.h"
+#include "ranshaw_ct_barrier.h"
 
 /*
  * Returns 1 if h is nonzero (in canonical form), 0 if zero.

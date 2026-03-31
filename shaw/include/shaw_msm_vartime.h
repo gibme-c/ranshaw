@@ -48,11 +48,7 @@ static inline void
     ranshaw_get_dispatch().shaw_msm_vartime(result, scalars, points, n);
 }
 #elif RANSHAW_PLATFORM_64BIT
-void shaw_msm_vartime_x64(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n);
+void shaw_msm_vartime_x64(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n);
 static inline void
     shaw_msm_vartime(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
 {

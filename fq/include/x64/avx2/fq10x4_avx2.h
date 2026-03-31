@@ -55,8 +55,8 @@
 #ifndef RANSHAW_X64_AVX2_FQ10X4_AVX2_H
 #define RANSHAW_X64_AVX2_FQ10X4_AVX2_H
 
-#include "ranshaw_platform.h"
 #include "portable/fq25.h"
+#include "ranshaw_platform.h"
 #include "x64/avx2/fq10_avx2.h"
 
 #include <immintrin.h>
@@ -142,31 +142,31 @@ static inline __m256i fq10x4_gamma3_2(void)
  */
 static inline __m256i fq10x4_bias0(void)
 {
-    return _mm256_set1_epi64x(155073784LL);
+    return _mm256_set1_epi64x(8LL * Q_25[0]);
 }
 static inline __m256i fq10x4_bias1(void)
 {
-    return _mm256_set1_epi64x(228910320LL);
+    return _mm256_set1_epi64x(8LL * Q_25[1]);
 }
 static inline __m256i fq10x4_bias2(void)
 {
-    return _mm256_set1_epi64x(190344880LL);
+    return _mm256_set1_epi64x(8LL * Q_25[2]);
 }
 static inline __m256i fq10x4_bias3(void)
 {
-    return _mm256_set1_epi64x(187554136LL);
+    return _mm256_set1_epi64x(8LL * Q_25[3]);
 }
 static inline __m256i fq10x4_bias4(void)
 {
-    return _mm256_set1_epi64x(401600256LL);
+    return _mm256_set1_epi64x(8LL * Q_25[4]);
 }
 static inline __m256i fq10x4_bias_odd_upper(void)
 {
-    return _mm256_set1_epi64x(268435448LL);
+    return _mm256_set1_epi64x(8LL * Q_25[5]);
 }
 static inline __m256i fq10x4_bias_even_upper(void)
 {
-    return _mm256_set1_epi64x(536870904LL);
+    return _mm256_set1_epi64x(8LL * Q_25[6]);
 }
 
 /* Shorthand macros */
@@ -229,11 +229,6 @@ static FQ10X4_FORCE_INLINE void fq10x4_carry_gamma(fq10x4 *h)
 {
     const __m256i mask26 = FQ10X4_MASK26;
     const __m256i mask25 = FQ10X4_MASK25;
-    const __m256i g0 = FQ10X4_GAMMA0;
-    const __m256i g1 = FQ10X4_GAMMA1;
-    const __m256i g2 = FQ10X4_GAMMA2;
-    const __m256i g3 = FQ10X4_GAMMA3;
-    const __m256i g4 = FQ10X4_GAMMA4;
     __m256i c;
 
     /* Linear carry chain 0 -> 9 */
@@ -276,12 +271,9 @@ static FQ10X4_FORCE_INLINE void fq10x4_carry_gamma(fq10x4 *h)
     c = _mm256_srli_epi64(h->v[9], 25);
     h->v[9] = _mm256_and_si256(h->v[9], mask25);
 
-    /* Gamma fold: c * gamma[0..4] into limbs 0..4 */
-    h->v[0] = _mm256_add_epi64(h->v[0], _mm256_mul_epu32(c, g0));
-    h->v[1] = _mm256_add_epi64(h->v[1], _mm256_mul_epu32(c, g1));
-    h->v[2] = _mm256_add_epi64(h->v[2], _mm256_mul_epu32(c, g2));
-    h->v[3] = _mm256_add_epi64(h->v[3], _mm256_mul_epu32(c, g3));
-    h->v[4] = _mm256_add_epi64(h->v[4], _mm256_mul_epu32(c, g4));
+    /* Gamma fold: c * gamma[0..GAMMA_25_LIMBS-1] into limbs 0..GAMMA_25_LIMBS-1 */
+    for (int j = 0; j < GAMMA_25_LIMBS; j++)
+        h->v[j] = _mm256_add_epi64(h->v[j], _mm256_mul_epu32(c, _mm256_set1_epi64x(GAMMA_25[j])));
 
     /* Re-carry limbs 0..4 */
     c = _mm256_srli_epi64(h->v[0], 26);
@@ -599,96 +591,35 @@ static FQ10X4_FORCE_INLINE void fq10x4_mul(fq10x4 *h, const fq10x4 *f, const fq1
 
     /*
      * Step 2: First gamma fold.
-     * Convolve t[10..19] with gamma[0..4], add to positions 0..13.
+     * Convolve t[10..19] with gamma[0..GAMMA_25_LIMBS-1], add to positions 0..(9+GAMMA_25_LIMBS-1).
      *
-     * Offset correction: positions 10,12,14,16,18 are EVEN -> no correction.
-     * Positions 11,13,15,17,19 are ODD -> use gamma1_2, gamma3_2 for odd gamma indices.
+     * Offset correction: when both source position (10+k) and gamma index j are odd,
+     * the product occupies an even output position and must be doubled.
      */
-    const __m256i gv0 = FQ10X4_GAMMA0;
-    const __m256i gv1 = FQ10X4_GAMMA1;
-    const __m256i gv2 = FQ10X4_GAMMA2;
-    const __m256i gv3 = FQ10X4_GAMMA3;
-    const __m256i gv4 = FQ10X4_GAMMA4;
-    const __m256i gv1_2 = FQ10X4_GAMMA1_2;
-    const __m256i gv3_2 = FQ10X4_GAMMA3_2;
-
-    /* h0 = t0 + t10*g0 */
-    __m256i h0 = _mm256_add_epi64(t0, _mm256_mul_epu32(t10, gv0));
-
-    /* h1 = t1 + t10*g1 + t11*g0 */
-    __m256i h1 = _mm256_add_epi64(t1, _mm256_mul_epu32(t10, gv1));
-    h1 = _mm256_add_epi64(h1, _mm256_mul_epu32(t11, gv0));
-
-    /* h2 = t2 + t10*g2 + t11*g1_2 + t12*g0 */
-    __m256i h2 = _mm256_add_epi64(t2, _mm256_mul_epu32(t10, gv2));
-    h2 = _mm256_add_epi64(h2, _mm256_mul_epu32(t11, gv1_2));
-    h2 = _mm256_add_epi64(h2, _mm256_mul_epu32(t12, gv0));
-
-    /* h3 = t3 + t10*g3 + t11*g2 + t12*g1 + t13*g0 */
-    __m256i h3 = _mm256_add_epi64(t3, _mm256_mul_epu32(t10, gv3));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(t11, gv2));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(t12, gv1));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(t13, gv0));
-
-    /* h4 = t4 + t10*g4 + t11*g3_2 + t12*g2 + t13*g1_2 + t14*g0 */
-    __m256i h4 = _mm256_add_epi64(t4, _mm256_mul_epu32(t10, gv4));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t11, gv3_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t12, gv2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t13, gv1_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t14, gv0));
-
-    /* h5 = t5 + t11*g4 + t12*g3 + t13*g2 + t14*g1 + t15*g0 */
-    __m256i h5 = _mm256_add_epi64(t5, _mm256_mul_epu32(t11, gv4));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t12, gv3));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t13, gv2));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t14, gv1));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t15, gv0));
-
-    /* h6 = t6 + t12*g4 + t13*g3_2 + t14*g2 + t15*g1_2 + t16*g0 */
-    __m256i h6 = _mm256_add_epi64(t6, _mm256_mul_epu32(t12, gv4));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t13, gv3_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t14, gv2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t15, gv1_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t16, gv0));
-
-    /* h7 = t7 + t13*g4 + t14*g3 + t15*g2 + t16*g1 + t17*g0 */
-    __m256i h7 = _mm256_add_epi64(t7, _mm256_mul_epu32(t13, gv4));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t14, gv3));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t15, gv2));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t16, gv1));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t17, gv0));
-
-    /* h8 = t8 + t14*g4 + t15*g3_2 + t16*g2 + t17*g1_2 + t18*g0 */
-    __m256i h8 = _mm256_add_epi64(t8, _mm256_mul_epu32(t14, gv4));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t15, gv3_2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t16, gv2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t17, gv1_2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t18, gv0));
-
-    /* h9 = t9 + t15*g4 + t16*g3 + t17*g2 + t18*g1 + t19*g0 */
-    __m256i h9 = _mm256_add_epi64(t9, _mm256_mul_epu32(t15, gv4));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t16, gv3));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t17, gv2));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t18, gv1));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t19, gv0));
-
-    /* h10 = t16*g4 + t17*g3_2 + t18*g2 + t19*g1_2 */
-    __m256i h10 = _mm256_mul_epu32(t16, gv4);
-    h10 = _mm256_add_epi64(h10, _mm256_mul_epu32(t17, gv3_2));
-    h10 = _mm256_add_epi64(h10, _mm256_mul_epu32(t18, gv2));
-    h10 = _mm256_add_epi64(h10, _mm256_mul_epu32(t19, gv1_2));
-
-    /* h11 = t17*g4 + t18*g3 + t19*g2 */
-    __m256i h11 = _mm256_mul_epu32(t17, gv4);
-    h11 = _mm256_add_epi64(h11, _mm256_mul_epu32(t18, gv3));
-    h11 = _mm256_add_epi64(h11, _mm256_mul_epu32(t19, gv2));
-
-    /* h12 = t18*g4 + t19*g3_2 */
-    __m256i h12 = _mm256_mul_epu32(t18, gv4);
-    h12 = _mm256_add_epi64(h12, _mm256_mul_epu32(t19, gv3_2));
-
-    /* h13 = t19*g4 */
-    __m256i h13 = _mm256_mul_epu32(t19, gv4);
+    const __m256i tv[10] = {t10, t11, t12, t13, t14, t15, t16, t17, t18, t19};
+    __m256i hv[10 + GAMMA_25_LIMBS - 1];
+    {
+        const __m256i low[10] = {t0, t1, t2, t3, t4, t5, t6, t7, t8, t9};
+        for (int n = 0; n < 10; n++)
+            hv[n] = low[n];
+    }
+    for (int n = 10; n < 10 + GAMMA_25_LIMBS - 1; n++)
+        hv[n] = _mm256_setzero_si256();
+    for (int k = 0; k < 10; k++)
+    {
+        for (int j = 0; j < GAMMA_25_LIMBS; j++)
+        {
+            /* Offset correction: source position is (10+k), gamma index is j.
+               When both (10+k) and j are odd, use 2*gamma[j]. Since 10+k is odd
+               iff k is odd, the condition is: k odd AND j odd. */
+            const int need_double = (k & 1) & (j & 1);
+            const __m256i gval = _mm256_set1_epi64x(need_double ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j]);
+            hv[k + j] = _mm256_add_epi64(hv[k + j], _mm256_mul_epu32(tv[k], gval));
+        }
+    }
+    __m256i h0 = hv[0], h1 = hv[1], h2 = hv[2], h3 = hv[3], h4 = hv[4];
+    __m256i h5 = hv[5], h6 = hv[6], h7 = hv[7], h8 = hv[8], h9 = hv[9];
+    __m256i h10 = hv[10], h11 = hv[11], h12 = hv[12], h13 = hv[13];
 
     /*
      * Step 3: Carry-propagate h0..h9, overflow into h10..h13.
@@ -755,46 +686,24 @@ static FQ10X4_FORCE_INLINE void fq10x4_mul(fq10x4 *h, const fq10x4 *f, const fq1
     /*
      * Step 5: Second gamma fold: h[10..14] * gamma -> positions 0..8.
      *
-     * Offset corrections:
-     *   h10 at pos 10 (even): no correction
-     *   h11 at pos 11 (odd): use gv1_2, gv3_2 for odd gamma indices
-     *   h12 at pos 12 (even): no correction
-     *   h13 at pos 13 (odd): use gv1_2, gv3_2 for odd gamma indices
-     *   h14 at pos 14 (even): no correction
+     * Same offset correction rule as first fold: when both source position
+     * (10+k) and gamma index j are odd, double the gamma coefficient.
      */
-    h0 = _mm256_add_epi64(h0, _mm256_mul_epu32(h10, gv0));
-
-    h1 = _mm256_add_epi64(h1, _mm256_mul_epu32(h10, gv1));
-    h1 = _mm256_add_epi64(h1, _mm256_mul_epu32(h11, gv0));
-
-    h2 = _mm256_add_epi64(h2, _mm256_mul_epu32(h10, gv2));
-    h2 = _mm256_add_epi64(h2, _mm256_mul_epu32(h11, gv1_2));
-    h2 = _mm256_add_epi64(h2, _mm256_mul_epu32(h12, gv0));
-
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(h10, gv3));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(h11, gv2));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(h12, gv1));
-    h3 = _mm256_add_epi64(h3, _mm256_mul_epu32(h13, gv0));
-
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h10, gv4));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h11, gv3_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h12, gv2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h13, gv1_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h14, gv0));
-
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h11, gv4));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h12, gv3));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h13, gv2));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h14, gv1));
-
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h12, gv4));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h13, gv3_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h14, gv2));
-
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(h13, gv4));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(h14, gv3));
-
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(h14, gv4));
+    {
+        const __m256i ov[5] = {h10, h11, h12, h13, h14};
+        __m256i *dst[10] = {&h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9};
+        for (int k = 0; k < 5; k++)
+        {
+            for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            {
+                if (k + j >= 10)
+                    break;
+                const int need_double = (k & 1) & (j & 1);
+                const __m256i gval = _mm256_set1_epi64x(need_double ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j]);
+                *dst[k + j] = _mm256_add_epi64(*dst[k + j], _mm256_mul_epu32(ov[k], gval));
+            }
+        }
+    }
 
     /*
      * Step 6: Final carry with gamma fold at limb 9.
@@ -997,68 +906,39 @@ static FQ10X4_FORCE_INLINE void fq10x4_sq(fq10x4 *h, const fq10x4 *f)
     t18 = _mm256_and_si256(t18, mask26);
     __m256i t19 = c;
 
-    /* First gamma fold */
-    const __m256i gv0 = FQ10X4_GAMMA0, gv1 = FQ10X4_GAMMA1, gv2 = FQ10X4_GAMMA2;
-    const __m256i gv3 = FQ10X4_GAMMA3, gv4 = FQ10X4_GAMMA4;
-    const __m256i gv1_2 = FQ10X4_GAMMA1_2, gv3_2 = FQ10X4_GAMMA3_2;
-
-    __m256i h0 = _mm256_add_epi64(t0, _mm256_mul_epu32(t10, gv0));
-    __m256i h1 = _mm256_add_epi64(t1, _mm256_add_epi64(_mm256_mul_epu32(t10, gv1), _mm256_mul_epu32(t11, gv0)));
-    __m256i h2 = _mm256_add_epi64(
-        t2,
-        _mm256_add_epi64(
-            _mm256_mul_epu32(t10, gv2), _mm256_add_epi64(_mm256_mul_epu32(t11, gv1_2), _mm256_mul_epu32(t12, gv0))));
-    __m256i h3 = _mm256_add_epi64(
-        t3,
-        _mm256_add_epi64(
-            _mm256_add_epi64(_mm256_mul_epu32(t10, gv3), _mm256_mul_epu32(t11, gv2)),
-            _mm256_add_epi64(_mm256_mul_epu32(t12, gv1), _mm256_mul_epu32(t13, gv0))));
-
-    __m256i h4 = _mm256_add_epi64(t4, _mm256_mul_epu32(t10, gv4));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t11, gv3_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t12, gv2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t13, gv1_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(t14, gv0));
-
-    __m256i h5 = _mm256_add_epi64(t5, _mm256_mul_epu32(t11, gv4));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t12, gv3));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t13, gv2));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t14, gv1));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(t15, gv0));
-
-    __m256i h6 = _mm256_add_epi64(t6, _mm256_mul_epu32(t12, gv4));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t13, gv3_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t14, gv2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t15, gv1_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(t16, gv0));
-
-    __m256i h7 = _mm256_add_epi64(t7, _mm256_mul_epu32(t13, gv4));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t14, gv3));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t15, gv2));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t16, gv1));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(t17, gv0));
-
-    __m256i h8 = _mm256_add_epi64(t8, _mm256_mul_epu32(t14, gv4));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t15, gv3_2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t16, gv2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t17, gv1_2));
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(t18, gv0));
-
-    __m256i h9 = _mm256_add_epi64(t9, _mm256_mul_epu32(t15, gv4));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t16, gv3));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t17, gv2));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t18, gv1));
-    h9 = _mm256_add_epi64(h9, _mm256_mul_epu32(t19, gv0));
-
-    __m256i h10 = _mm256_add_epi64(_mm256_mul_epu32(t16, gv4), _mm256_mul_epu32(t17, gv3_2));
-    h10 = _mm256_add_epi64(h10, _mm256_mul_epu32(t18, gv2));
-    h10 = _mm256_add_epi64(h10, _mm256_mul_epu32(t19, gv1_2));
-
-    __m256i h11 = _mm256_add_epi64(_mm256_mul_epu32(t17, gv4), _mm256_mul_epu32(t18, gv3));
-    h11 = _mm256_add_epi64(h11, _mm256_mul_epu32(t19, gv2));
-
-    __m256i h12 = _mm256_add_epi64(_mm256_mul_epu32(t18, gv4), _mm256_mul_epu32(t19, gv3_2));
-    __m256i h13 = _mm256_mul_epu32(t19, gv4);
+    /* First gamma fold: convolve t[10..19] with gamma -> positions 0..(9+GAMMA_25_LIMBS-1) */
+    __m256i h0, h1, h2, h3, h4, h5, h6, h7, h8, h9;
+    __m256i h10, h11, h12, h13;
+    {
+        const __m256i upper[10] = {t10, t11, t12, t13, t14, t15, t16, t17, t18, t19};
+        __m256i hv[10 + GAMMA_25_LIMBS - 1];
+        const __m256i low[10] = {t0, t1, t2, t3, t4, t5, t6, t7, t8, t9};
+        for (int n = 0; n < 10; n++)
+            hv[n] = low[n];
+        for (int n = 10; n < 10 + GAMMA_25_LIMBS - 1; n++)
+            hv[n] = _mm256_setzero_si256();
+        for (int k = 0; k < 10; k++)
+            for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            {
+                const int need_double = (k & 1) & (j & 1);
+                const __m256i gval = _mm256_set1_epi64x(need_double ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j]);
+                hv[k + j] = _mm256_add_epi64(hv[k + j], _mm256_mul_epu32(upper[k], gval));
+            }
+        h0 = hv[0];
+        h1 = hv[1];
+        h2 = hv[2];
+        h3 = hv[3];
+        h4 = hv[4];
+        h5 = hv[5];
+        h6 = hv[6];
+        h7 = hv[7];
+        h8 = hv[8];
+        h9 = hv[9];
+        h10 = hv[10];
+        h11 = hv[11];
+        h12 = hv[12];
+        h13 = hv[13];
+    }
 
     /* Carry h0..h9 -> h10 */
     c = _mm256_srli_epi64(h0, 26);
@@ -1106,38 +986,20 @@ static FQ10X4_FORCE_INLINE void fq10x4_sq(fq10x4 *h, const fq10x4 *f)
     h13 = _mm256_and_si256(h13, mask25);
     __m256i h14 = c;
 
-    /* Second gamma fold */
-    h0 = _mm256_add_epi64(h0, _mm256_mul_epu32(h10, gv0));
-    h1 = _mm256_add_epi64(h1, _mm256_add_epi64(_mm256_mul_epu32(h10, gv1), _mm256_mul_epu32(h11, gv0)));
-    h2 = _mm256_add_epi64(
-        h2,
-        _mm256_add_epi64(
-            _mm256_mul_epu32(h10, gv2), _mm256_add_epi64(_mm256_mul_epu32(h11, gv1_2), _mm256_mul_epu32(h12, gv0))));
-    h3 = _mm256_add_epi64(
-        h3,
-        _mm256_add_epi64(
-            _mm256_add_epi64(_mm256_mul_epu32(h10, gv3), _mm256_mul_epu32(h11, gv2)),
-            _mm256_add_epi64(_mm256_mul_epu32(h12, gv1), _mm256_mul_epu32(h13, gv0))));
-
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h10, gv4));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h11, gv3_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h12, gv2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h13, gv1_2));
-    h4 = _mm256_add_epi64(h4, _mm256_mul_epu32(h14, gv0));
-
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h11, gv4));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h12, gv3));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h13, gv2));
-    h5 = _mm256_add_epi64(h5, _mm256_mul_epu32(h14, gv1));
-
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h12, gv4));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h13, gv3_2));
-    h6 = _mm256_add_epi64(h6, _mm256_mul_epu32(h14, gv2));
-
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(h13, gv4));
-    h7 = _mm256_add_epi64(h7, _mm256_mul_epu32(h14, gv3));
-
-    h8 = _mm256_add_epi64(h8, _mm256_mul_epu32(h14, gv4));
+    /* Second gamma fold: h[10..14] * gamma -> positions 0..8 */
+    {
+        const __m256i ov[5] = {h10, h11, h12, h13, h14};
+        __m256i *dst[10] = {&h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9};
+        for (int k = 0; k < 5; k++)
+            for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            {
+                if (k + j >= 10)
+                    break;
+                const int need_double = (k & 1) & (j & 1);
+                const __m256i gval = _mm256_set1_epi64x(need_double ? 2 * (int64_t)GAMMA_25[j] : (int64_t)GAMMA_25[j]);
+                *dst[k + j] = _mm256_add_epi64(*dst[k + j], _mm256_mul_epu32(ov[k], gval));
+            }
+    }
 
     /* Final carry with gamma fold */
     h->v[0] = h0;

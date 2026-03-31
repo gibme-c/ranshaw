@@ -52,10 +52,10 @@
 #ifndef RANSHAW_X64_AVX2_FQ10_AVX2_H
 #define RANSHAW_X64_AVX2_FQ10_AVX2_H
 
-#include "ranshaw_ct_barrier.h"
 #include "fq_ops.h"
-#include "ranshaw_platform.h"
 #include "portable/fq25.h"
+#include "ranshaw_ct_barrier.h"
+#include "ranshaw_platform.h"
 #include "x64/fq51.h"
 
 #include <immintrin.h>

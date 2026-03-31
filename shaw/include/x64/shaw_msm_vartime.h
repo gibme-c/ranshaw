@@ -36,10 +36,6 @@
 
 #include <cstddef>
 
-void shaw_msm_vartime_x64(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n);
+void shaw_msm_vartime_x64(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n);
 
 #endif // RANSHAW_X64_SHAW_MSM_VARTIME_H

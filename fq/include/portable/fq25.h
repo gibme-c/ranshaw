@@ -50,7 +50,8 @@
  *   GAMMA_51[1] = 0x269135294F229 -> limb2, limb3
  *   GAMMA_51[2] = 0x102021F        -> limb4
  */
-static const int32_t GAMMA_25[5] = {47724641, 4940641, 43315753, 10110164, 16908831};
+#define GAMMA_25_LIMBS 5
+static const int32_t GAMMA_25[10] = {47724641, 4940641, 43315753, 10110164, 16908831, 0, 0, 0, 0, 0};
 
 /*
  * q = 2^255 - gamma in 10-limb radix-2^25.5 form (unsigned, canonical).

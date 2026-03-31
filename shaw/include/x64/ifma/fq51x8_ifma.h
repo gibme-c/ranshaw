@@ -129,9 +129,6 @@ static FQ51X8_FORCE_INLINE void fq51x8_carry(fq51x8 *h)
 {
     const __m512i mask = FQ51X8_MASK51;
     const __m512i zero = _mm512_setzero_si512();
-    const __m512i g0 = _mm512_set1_epi64((long long)GAMMA_51[0]);
-    const __m512i g1 = _mm512_set1_epi64((long long)GAMMA_51[1]);
-    const __m512i g2 = _mm512_set1_epi64((long long)GAMMA_51[2]);
     __m512i c, t;
 
     c = _mm512_srli_epi64(h->v[0], 51);
@@ -154,20 +151,14 @@ static FQ51X8_FORCE_INLINE void fq51x8_carry(fq51x8 *h)
     c = _mm512_srli_epi64(h->v[4], 51);
     h->v[4] = _mm512_and_si512(h->v[4], mask);
 
-    // c * GAMMA_51[0] -> limb 0, hi -> limb 1
-    h->v[0] = _mm512_madd52lo_epu64(h->v[0], c, g0);
-    t = _mm512_madd52hi_epu64(zero, c, g0);
-    h->v[1] = _mm512_add_epi64(h->v[1], _mm512_slli_epi64(t, 1));
-
-    // c * GAMMA_51[1] -> limb 1, hi -> limb 2
-    h->v[1] = _mm512_madd52lo_epu64(h->v[1], c, g1);
-    t = _mm512_madd52hi_epu64(zero, c, g1);
-    h->v[2] = _mm512_add_epi64(h->v[2], _mm512_slli_epi64(t, 1));
-
-    // c * GAMMA_51[2] -> limb 2, hi -> limb 3
-    h->v[2] = _mm512_madd52lo_epu64(h->v[2], c, g2);
-    t = _mm512_madd52hi_epu64(zero, c, g2);
-    h->v[3] = _mm512_add_epi64(h->v[3], _mm512_slli_epi64(t, 1));
+    // c * GAMMA_51[j] -> limb j, hi -> limb j+1
+    for (int j = 0; j < GAMMA_51_LIMBS; j++)
+    {
+        const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+        h->v[j] = _mm512_madd52lo_epu64(h->v[j], c, gj);
+        t = _mm512_madd52hi_epu64(zero, c, gj);
+        h->v[j + 1] = _mm512_add_epi64(h->v[j + 1], _mm512_slli_epi64(t, 1));
+    }
 
     // Re-carry limbs 0..4 to normalize
     c = _mm512_srli_epi64(h->v[0], 51);
@@ -270,9 +261,6 @@ static FQ51X8_FORCE_INLINE void fq51x8_crandall_reduce(
 {
     const __m512i mask = FQ51X8_MASK51;
     const __m512i zero = _mm512_setzero_si512();
-    const __m512i g0 = _mm512_set1_epi64((long long)GAMMA_51[0]);
-    const __m512i g1 = _mm512_set1_epi64((long long)GAMMA_51[1]);
-    const __m512i g2 = _mm512_set1_epi64((long long)GAMMA_51[2]);
     __m512i c, t;
 
     // Linear carry chain c0..c8 to bring all limbs to <=51 bits.
@@ -306,156 +294,101 @@ static FQ51X8_FORCE_INLINE void fq51x8_crandall_reduce(
     c8 = _mm512_and_si512(c8, mask);
 
     // Now all of c0..c8 are <=51 bits, carry_out is <=~5 bits.
-    // Fold c5..c8 and carry_out with gamma.
-    //
-    // r[0] = c[0] + c[5]*g[0]
-    // r[1] = c[1] + c[5]*g[1] + c[6]*g[0]
-    // r[2] = c[2] + c[5]*g[2] + c[6]*g[1] + c[7]*g[0]
-    // r[3] = c[3] + c[6]*g[2] + c[7]*g[1] + c[8]*g[0]
-    // r[4] = c[4] + c[7]*g[2] + c[8]*g[1]
-    // r[5] = c[8]*g[2]
-    // r[4] += carry_out*g[0], r[5] += carry_out*g[1], r[6] = carry_out*g[2]
+    // Fold c5..c8 and carry_out with gamma using nested loops.
+    __m512i r[5 + GAMMA_51_LIMBS];
+    r[0] = c0;
+    r[1] = c1;
+    r[2] = c2;
+    r[3] = c3;
+    r[4] = c4;
+    for (int i = 5; i < 5 + GAMMA_51_LIMBS; i++)
+        r[i] = zero;
+    {
+        const __m512i overflow[5] = {c5, c6, c7, c8, carry_out};
+        for (int k = 0; k < 5; k++)
+        {
+            for (int j = 0; j < GAMMA_51_LIMBS; j++)
+            {
+                const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+                r[k + j] = _mm512_madd52lo_epu64(r[k + j], overflow[k], gj);
+                t = _mm512_madd52hi_epu64(zero, overflow[k], gj);
+                r[k + j + 1] = _mm512_add_epi64(r[k + j + 1], _mm512_slli_epi64(t, 1));
+            }
+        }
+    }
 
-    __m512i r0 = c0, r1 = c1, r2 = c2, r3 = c3, r4 = c4;
-    __m512i r5 = zero, r6 = zero;
+    // Carry-propagate r[0..4], with overflow into r[5]
+    c = _mm512_srli_epi64(r[0], 51);
+    r[1] = _mm512_add_epi64(r[1], c);
+    r[0] = _mm512_and_si512(r[0], mask);
+    c = _mm512_srli_epi64(r[1], 51);
+    r[2] = _mm512_add_epi64(r[2], c);
+    r[1] = _mm512_and_si512(r[1], mask);
+    c = _mm512_srli_epi64(r[2], 51);
+    r[3] = _mm512_add_epi64(r[3], c);
+    r[2] = _mm512_and_si512(r[2], mask);
+    c = _mm512_srli_epi64(r[3], 51);
+    r[4] = _mm512_add_epi64(r[4], c);
+    r[3] = _mm512_and_si512(r[3], mask);
+    c = _mm512_srli_epi64(r[4], 51);
+    r[5] = _mm512_add_epi64(r[5], c);
+    r[4] = _mm512_and_si512(r[4], mask);
 
-    // c5 * gamma -> positions 0,1,2
-    r0 = _mm512_madd52lo_epu64(r0, c5, g0);
-    t = _mm512_madd52hi_epu64(zero, c5, g0);
-    r1 = _mm512_add_epi64(r1, _mm512_slli_epi64(t, 1));
-    r1 = _mm512_madd52lo_epu64(r1, c5, g1);
-    t = _mm512_madd52hi_epu64(zero, c5, g1);
-    r2 = _mm512_add_epi64(r2, _mm512_slli_epi64(t, 1));
-    r2 = _mm512_madd52lo_epu64(r2, c5, g2);
-    t = _mm512_madd52hi_epu64(zero, c5, g2);
-    r3 = _mm512_add_epi64(r3, _mm512_slli_epi64(t, 1));
-
-    // c6 * gamma -> positions 1,2,3
-    r1 = _mm512_madd52lo_epu64(r1, c6, g0);
-    t = _mm512_madd52hi_epu64(zero, c6, g0);
-    r2 = _mm512_add_epi64(r2, _mm512_slli_epi64(t, 1));
-    r2 = _mm512_madd52lo_epu64(r2, c6, g1);
-    t = _mm512_madd52hi_epu64(zero, c6, g1);
-    r3 = _mm512_add_epi64(r3, _mm512_slli_epi64(t, 1));
-    r3 = _mm512_madd52lo_epu64(r3, c6, g2);
-    t = _mm512_madd52hi_epu64(zero, c6, g2);
-    r4 = _mm512_add_epi64(r4, _mm512_slli_epi64(t, 1));
-
-    // c7 * gamma -> positions 2,3,4
-    r2 = _mm512_madd52lo_epu64(r2, c7, g0);
-    t = _mm512_madd52hi_epu64(zero, c7, g0);
-    r3 = _mm512_add_epi64(r3, _mm512_slli_epi64(t, 1));
-    r3 = _mm512_madd52lo_epu64(r3, c7, g1);
-    t = _mm512_madd52hi_epu64(zero, c7, g1);
-    r4 = _mm512_add_epi64(r4, _mm512_slli_epi64(t, 1));
-    r4 = _mm512_madd52lo_epu64(r4, c7, g2);
-    t = _mm512_madd52hi_epu64(zero, c7, g2);
-    r5 = _mm512_add_epi64(r5, _mm512_slli_epi64(t, 1));
-
-    // c8 * gamma -> positions 3,4,5
-    r3 = _mm512_madd52lo_epu64(r3, c8, g0);
-    t = _mm512_madd52hi_epu64(zero, c8, g0);
-    r4 = _mm512_add_epi64(r4, _mm512_slli_epi64(t, 1));
-    r4 = _mm512_madd52lo_epu64(r4, c8, g1);
-    t = _mm512_madd52hi_epu64(zero, c8, g1);
-    r5 = _mm512_add_epi64(r5, _mm512_slli_epi64(t, 1));
-    r5 = _mm512_madd52lo_epu64(r5, c8, g2);
-    t = _mm512_madd52hi_epu64(zero, c8, g2);
-    r6 = _mm512_add_epi64(r6, _mm512_slli_epi64(t, 1));
-
-    // carry_out * gamma -> positions 4,5,6
-    // carry_out can be ~5 bits. Products with g0 (49 bits) and g1 (50 bits)
-    // can exceed 52 bits, so we must capture hi parts for those terms.
-    // g2 is only 25 bits, so carry_out * g2 <= 30 bits -- hi is zero.
-    r4 = _mm512_madd52lo_epu64(r4, carry_out, g0);
-    t = _mm512_madd52hi_epu64(zero, carry_out, g0);
-    r5 = _mm512_add_epi64(r5, _mm512_slli_epi64(t, 1));
-    r5 = _mm512_madd52lo_epu64(r5, carry_out, g1);
-    t = _mm512_madd52hi_epu64(zero, carry_out, g1);
-    r6 = _mm512_add_epi64(r6, _mm512_slli_epi64(t, 1));
-    r6 = _mm512_madd52lo_epu64(r6, carry_out, g2);
-
-    // Carry-propagate r0..r4, with overflow into r5
-    c = _mm512_srli_epi64(r0, 51);
-    r1 = _mm512_add_epi64(r1, c);
-    r0 = _mm512_and_si512(r0, mask);
-    c = _mm512_srli_epi64(r1, 51);
-    r2 = _mm512_add_epi64(r2, c);
-    r1 = _mm512_and_si512(r1, mask);
-    c = _mm512_srli_epi64(r2, 51);
-    r3 = _mm512_add_epi64(r3, c);
-    r2 = _mm512_and_si512(r2, mask);
-    c = _mm512_srli_epi64(r3, 51);
-    r4 = _mm512_add_epi64(r4, c);
-    r3 = _mm512_and_si512(r3, mask);
-    c = _mm512_srli_epi64(r4, 51);
-    r5 = _mm512_add_epi64(r5, c);
-    r4 = _mm512_and_si512(r4, mask);
-
-    // Carry-normalize r5 into r6 before second fold.
-    // After the first fold + carry chain, r5 can be ~53 bits. IFMA madd52
+    // Carry-normalize r[5] into r[6] before second fold.
+    // After the first fold + carry chain, r[5] can be ~53 bits. IFMA madd52
     // instructions only use the low 52 bits of their operands (a[51:0]),
     // so bits 52+ would be silently dropped, corrupting the result.
-    c = _mm512_srli_epi64(r5, 51);
-    r6 = _mm512_add_epi64(r6, c);
-    r5 = _mm512_and_si512(r5, mask);
+    c = _mm512_srli_epi64(r[5], 51);
+    r[6] = _mm512_add_epi64(r[6], c);
+    r[5] = _mm512_and_si512(r[5], mask);
 
-    // Second mini-fold: r5 and r6 are now <=51 bits, fold them back
-    // r5 * gamma -> positions 0,1,2
-    r0 = _mm512_madd52lo_epu64(r0, r5, g0);
-    t = _mm512_madd52hi_epu64(zero, r5, g0);
-    r1 = _mm512_add_epi64(r1, _mm512_slli_epi64(t, 1));
-    r1 = _mm512_madd52lo_epu64(r1, r5, g1);
-    t = _mm512_madd52hi_epu64(zero, r5, g1);
-    r2 = _mm512_add_epi64(r2, _mm512_slli_epi64(t, 1));
-    r2 = _mm512_madd52lo_epu64(r2, r5, g2);
-    t = _mm512_madd52hi_epu64(zero, r5, g2);
-    r3 = _mm512_add_epi64(r3, _mm512_slli_epi64(t, 1));
-
-    // r6 * gamma -> positions 1,2,3
-    // r6 can be up to ~25 bits (carry from r5 plus small overflow terms).
-    // g0 is 49 bits, g1 is 50 bits, so r6*g0 and r6*g1 can exceed 52 bits
-    // and their hi parts MUST be captured. g2 is only 25 bits, so r6*g2
-    // fits in ~50 bits and its hi part is truly zero.
-    r1 = _mm512_madd52lo_epu64(r1, r6, g0);
-    t = _mm512_madd52hi_epu64(zero, r6, g0);
-    r2 = _mm512_add_epi64(r2, _mm512_slli_epi64(t, 1));
-    r2 = _mm512_madd52lo_epu64(r2, r6, g1);
-    t = _mm512_madd52hi_epu64(zero, r6, g1);
-    r3 = _mm512_add_epi64(r3, _mm512_slli_epi64(t, 1));
-    r3 = _mm512_madd52lo_epu64(r3, r6, g2);
+    // Second mini-fold: r[5] and r[6] are now <=51 bits, fold them back
+    {
+        const __m512i overflow2[2] = {r[5], r[6]};
+        r[5] = zero;
+        r[6] = zero;
+        for (int k = 0; k < 2; k++)
+        {
+            for (int j = 0; j < GAMMA_51_LIMBS; j++)
+            {
+                const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+                r[k + j] = _mm512_madd52lo_epu64(r[k + j], overflow2[k], gj);
+                t = _mm512_madd52hi_epu64(zero, overflow2[k], gj);
+                r[k + j + 1] = _mm512_add_epi64(r[k + j + 1], _mm512_slli_epi64(t, 1));
+            }
+        }
+    }
 
     // Final carry chain with gamma fold for carry out of limb 4
-    c = _mm512_srli_epi64(r0, 51);
-    r1 = _mm512_add_epi64(r1, c);
-    r0 = _mm512_and_si512(r0, mask);
-    c = _mm512_srli_epi64(r1, 51);
-    r2 = _mm512_add_epi64(r2, c);
-    r1 = _mm512_and_si512(r1, mask);
-    c = _mm512_srli_epi64(r2, 51);
-    r3 = _mm512_add_epi64(r3, c);
-    r2 = _mm512_and_si512(r2, mask);
-    c = _mm512_srli_epi64(r3, 51);
-    r4 = _mm512_add_epi64(r4, c);
-    r3 = _mm512_and_si512(r3, mask);
+    c = _mm512_srli_epi64(r[0], 51);
+    r[1] = _mm512_add_epi64(r[1], c);
+    r[0] = _mm512_and_si512(r[0], mask);
+    c = _mm512_srli_epi64(r[1], 51);
+    r[2] = _mm512_add_epi64(r[2], c);
+    r[1] = _mm512_and_si512(r[1], mask);
+    c = _mm512_srli_epi64(r[2], 51);
+    r[3] = _mm512_add_epi64(r[3], c);
+    r[2] = _mm512_and_si512(r[2], mask);
+    c = _mm512_srli_epi64(r[3], 51);
+    r[4] = _mm512_add_epi64(r[4], c);
+    r[3] = _mm512_and_si512(r[3], mask);
 
     // Fold final carry out of limb 4 via gamma (carry is tiny here)
-    c = _mm512_srli_epi64(r4, 51);
-    r4 = _mm512_and_si512(r4, mask);
-    r0 = _mm512_madd52lo_epu64(r0, c, g0);
-    r1 = _mm512_madd52lo_epu64(r1, c, g1);
-    r2 = _mm512_madd52lo_epu64(r2, c, g2);
+    c = _mm512_srli_epi64(r[4], 51);
+    r[4] = _mm512_and_si512(r[4], mask);
+    for (int j = 0; j < GAMMA_51_LIMBS; j++)
+        r[j] = _mm512_madd52lo_epu64(r[j], c, _mm512_set1_epi64((long long)GAMMA_51[j]));
 
     // One more carry pass on limb 0->1 to absorb the final fold
-    c = _mm512_srli_epi64(r0, 51);
-    r1 = _mm512_add_epi64(r1, c);
-    r0 = _mm512_and_si512(r0, mask);
+    c = _mm512_srli_epi64(r[0], 51);
+    r[1] = _mm512_add_epi64(r[1], c);
+    r[0] = _mm512_and_si512(r[0], mask);
 
-    h->v[0] = r0;
-    h->v[1] = r1;
-    h->v[2] = r2;
-    h->v[3] = r3;
-    h->v[4] = r4;
+    h->v[0] = r[0];
+    h->v[1] = r[1];
+    h->v[2] = r[2];
+    h->v[3] = r[3];
+    h->v[4] = r[4];
 }
 
 // -- Schoolbook multiplication using IFMA --
@@ -567,30 +500,25 @@ static FQ51X8_FORCE_INLINE void fq51x8_mul(fq51x8 *h, const fq51x8 *f, const fq5
     {
         const __m512i zero_v = _mm512_setzero_si512();
         const __m512i mask = FQ51X8_MASK51;
-        const __m512i g0 = _mm512_set1_epi64((long long)GAMMA_51[0]);
-        const __m512i g1 = _mm512_set1_epi64((long long)GAMMA_51[1]);
-        const __m512i g2 = _mm512_set1_epi64((long long)GAMMA_51[2]);
         __m512i t;
 
         __m512i c9 = _mm512_slli_epi64(hi8, 1);
         __m512i c9_hi = _mm512_srli_epi64(c9, 51);
         c9 = _mm512_and_si512(c9, mask);
 
-        // c9_lo * gamma -> positions 4,5,6 (c9_lo <= 51 bits, safe for IFMA)
-        c4 = _mm512_madd52lo_epu64(c4, c9, g0);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g0);
-        c5 = _mm512_add_epi64(c5, _mm512_slli_epi64(t, 1));
-        c5 = _mm512_madd52lo_epu64(c5, c9, g1);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g1);
-        c6 = _mm512_add_epi64(c6, _mm512_slli_epi64(t, 1));
-        c6 = _mm512_madd52lo_epu64(c6, c9, g2);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g2);
-        c7 = _mm512_add_epi64(c7, _mm512_slli_epi64(t, 1));
+        // c9_lo * gamma -> positions 4..4+GAMMA_51_LIMBS-1 (c9_lo <= 51 bits, safe for IFMA)
+        __m512i *cv[9] = {&c0, &c1, &c2, &c3, &c4, &c5, &c6, &c7, &c8};
+        for (int j = 0; j < GAMMA_51_LIMBS; j++)
+        {
+            const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+            *cv[4 + j] = _mm512_madd52lo_epu64(*cv[4 + j], c9, gj);
+            t = _mm512_madd52hi_epu64(zero_v, c9, gj);
+            *cv[4 + j + 1] = _mm512_add_epi64(*cv[4 + j + 1], _mm512_slli_epi64(t, 1));
+        }
 
-        // c9_hi * gamma -> positions 5,6,7 (c9_hi <= ~2 bits, products tiny)
-        c5 = _mm512_madd52lo_epu64(c5, c9_hi, g0);
-        c6 = _mm512_madd52lo_epu64(c6, c9_hi, g1);
-        c7 = _mm512_madd52lo_epu64(c7, c9_hi, g2);
+        // c9_hi * gamma -> positions 5..5+GAMMA_51_LIMBS-1 (c9_hi <= ~2 bits, products tiny)
+        for (int j = 0; j < GAMMA_51_LIMBS; j++)
+            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, _mm512_set1_epi64((long long)GAMMA_51[j]));
     }
 
     fq51x8_crandall_reduce(h, c0, c1, c2, c3, c4, c5, c6, c7, c8);
@@ -713,30 +641,25 @@ static FQ51X8_FORCE_INLINE void fq51x8_sq2(fq51x8 *h, const fq51x8 *f)
     {
         const __m512i zero_v = _mm512_setzero_si512();
         const __m512i mask = FQ51X8_MASK51;
-        const __m512i g0 = _mm512_set1_epi64((long long)GAMMA_51[0]);
-        const __m512i g1 = _mm512_set1_epi64((long long)GAMMA_51[1]);
-        const __m512i g2 = _mm512_set1_epi64((long long)GAMMA_51[2]);
         __m512i t;
 
         __m512i c9 = _mm512_slli_epi64(hi8, 1);
         __m512i c9_hi = _mm512_srli_epi64(c9, 51);
         c9 = _mm512_and_si512(c9, mask);
 
-        // c9_lo * gamma -> positions 4,5,6
-        c4 = _mm512_madd52lo_epu64(c4, c9, g0);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g0);
-        c5 = _mm512_add_epi64(c5, _mm512_slli_epi64(t, 1));
-        c5 = _mm512_madd52lo_epu64(c5, c9, g1);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g1);
-        c6 = _mm512_add_epi64(c6, _mm512_slli_epi64(t, 1));
-        c6 = _mm512_madd52lo_epu64(c6, c9, g2);
-        t = _mm512_madd52hi_epu64(zero_v, c9, g2);
-        c7 = _mm512_add_epi64(c7, _mm512_slli_epi64(t, 1));
+        // c9_lo * gamma -> positions 4..4+GAMMA_51_LIMBS-1
+        __m512i *cv[9] = {&c0, &c1, &c2, &c3, &c4, &c5, &c6, &c7, &c8};
+        for (int j = 0; j < GAMMA_51_LIMBS; j++)
+        {
+            const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+            *cv[4 + j] = _mm512_madd52lo_epu64(*cv[4 + j], c9, gj);
+            t = _mm512_madd52hi_epu64(zero_v, c9, gj);
+            *cv[4 + j + 1] = _mm512_add_epi64(*cv[4 + j + 1], _mm512_slli_epi64(t, 1));
+        }
 
-        // c9_hi * gamma -> positions 5,6,7
-        c5 = _mm512_madd52lo_epu64(c5, c9_hi, g0);
-        c6 = _mm512_madd52lo_epu64(c6, c9_hi, g1);
-        c7 = _mm512_madd52lo_epu64(c7, c9_hi, g2);
+        // c9_hi * gamma -> positions 5..5+GAMMA_51_LIMBS-1
+        for (int j = 0; j < GAMMA_51_LIMBS; j++)
+            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, _mm512_set1_epi64((long long)GAMMA_51[j]));
     }
 
     fq51x8_crandall_reduce(h, c0, c1, c2, c3, c4, c5, c6, c7, c8);

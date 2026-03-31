@@ -26,8 +26,8 @@
 
 #include "portable/fq_invert.h"
 
-#include "ranshaw_secure_erase.h"
 #include "portable/fq25_chain.h"
+#include "ranshaw_secure_erase.h"
 
 /*
  * Compute z^(q-2) mod q via optimized addition chain.

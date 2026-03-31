@@ -177,8 +177,7 @@ static int encode_signed_wbit(int16_t *digits, const unsigned char *scalar, int 
  * Each group of 4 scalars shares one 4-way accumulator, using fq10x4 arithmetic
  * for doubling and addition. Table lookups use per-lane conditional moves.
  */
-static void
-    msm_straus_avx2(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
+static void msm_straus_avx2(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
 {
     // Encode all scalars into signed 4-bit digits
     std::vector<int16_t> all_digits(n * 64);
@@ -516,11 +515,7 @@ static void
 
 static const size_t STRAUS_PIPPENGER_CROSSOVER = 16;
 
-void shaw_msm_vartime_avx2(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n)
+void shaw_msm_vartime_avx2(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n)
 {
     if (n == 0)
     {

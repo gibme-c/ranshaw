@@ -81,16 +81,15 @@ static inline void fq_sub(fq_fe h, const fq_fe f, const fq_fe g)
     c = h[4] >> 51;
     h[4] &= FQ51_MASK;
     /* Gamma fold: carry * 2^255 ≡ carry * gamma (mod q) */
-    h[0] += c * GAMMA_51[0];
-    h[1] += c * GAMMA_51[1];
-    h[2] += c * GAMMA_51[2];
-    /* Re-carry limbs 0-2 (gamma fold can push limb 0 above 51 bits) */
-    c = h[0] >> 51;
-    h[1] += c;
-    h[0] &= FQ51_MASK;
-    c = h[1] >> 51;
-    h[2] += c;
-    h[1] &= FQ51_MASK;
+    for (int j = 0; j < GAMMA_51_LIMBS; j++)
+        h[j] += c * GAMMA_51[j];
+    /* Re-carry limbs touched by gamma fold */
+    for (int j = 0; j < GAMMA_51_LIMBS - 1; j++)
+    {
+        uint64_t cc = h[j] >> 51;
+        h[j + 1] += cc;
+        h[j] &= FQ51_MASK;
+    }
 }
 
 static inline void fq_neg(fq_fe h, const fq_fe f)
@@ -152,11 +151,11 @@ static inline void fq_sub(fq_fe h, const fq_fe f, const fq_fe g)
     carry = d9 >> 25;
     d9 -= carry << 25;
     /* Fold: carry * 2^255 ≡ carry * gamma (mod q) */
-    d0 += carry * (int64_t)GAMMA_25[0];
-    d1 += carry * (int64_t)GAMMA_25[1];
-    d2 += carry * (int64_t)GAMMA_25[2];
-    d3 += carry * (int64_t)GAMMA_25[3];
-    d4 += carry * (int64_t)GAMMA_25[4];
+    {
+        int64_t *dptrs[] = {&d0, &d1, &d2, &d3, &d4, &d5, &d6, &d7, &d8, &d9};
+        for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            *dptrs[j] += carry * (int64_t)GAMMA_25[j];
+    }
     /* Second carry pass */
     carry = d0 >> 26;
     d1 += carry;
@@ -187,11 +186,11 @@ static inline void fq_sub(fq_fe h, const fq_fe f, const fq_fe g)
     d8 -= carry << 26;
     carry = d9 >> 25;
     d9 -= carry << 25;
-    d0 += carry * (int64_t)GAMMA_25[0];
-    d1 += carry * (int64_t)GAMMA_25[1];
-    d2 += carry * (int64_t)GAMMA_25[2];
-    d3 += carry * (int64_t)GAMMA_25[3];
-    d4 += carry * (int64_t)GAMMA_25[4];
+    {
+        int64_t *dptrs[] = {&d0, &d1, &d2, &d3, &d4, &d5, &d6, &d7, &d8, &d9};
+        for (int j = 0; j < GAMMA_25_LIMBS; j++)
+            *dptrs[j] += carry * (int64_t)GAMMA_25[j];
+    }
     carry = d0 >> 26;
     d1 += carry;
     d0 -= carry << 26;
