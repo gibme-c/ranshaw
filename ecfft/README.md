@@ -51,4 +51,4 @@ Both global contexts are initialized together by a single call to `ecfft_global_
 
 The precomputed data only needs to be regenerated if the auxiliary curve changes (which would break backwards compatibility with all downstream proofs). The process uses the `ranshaw-gen-ecfft` tool — see the project README for the exact commands and auxiliary curve parameters.
 
-The auxiliary curves were found by the `ranshaw-find-ecfft` tool using native 2-descent to identify curves with smooth group orders (power-of-2 domain sizes). A SageMath cross-check is available in `tools/ecfft_params.sage`.
+The auxiliary curves were found by the `ranshaw-find-ecfft` tool using native 2-descent to identify curves with smooth group orders (power-of-2 domain sizes).

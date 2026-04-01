@@ -343,7 +343,7 @@ cmake --build build --config Release -j
 
 ### Unit Tests (`ranshaw-tests`)
 
-1,679–1,707 tests (depending on config) across 50+ test groups covering: F_p/F_q arithmetic, square roots, point operations, scalar multiplication (variable-base and fixed-base), MSM (variable-base and fixed-base), precomputed generator tables, SSWU hash-to-curve, batch affine, batch field inversion, Pedersen commitments, scalar muladd/sq, polynomials (schoolbook, Karatsuba, interpolation, ECFFT), divisors, divisor evaluation, serialization, edge cases, Wei25519 bridge, point-to-scalar conversion, dispatch verification, the public C++ API (scalar/point/polynomial/divisor classes), and 161 Sage-validated test vector checks.
+1,681–1,707 tests (depending on config) across 50+ test groups covering: F_p/F_q arithmetic, square roots, point operations, scalar multiplication (variable-base and fixed-base), MSM (variable-base and fixed-base), precomputed generator tables, SSWU hash-to-curve, batch affine, batch field inversion, Pedersen commitments, scalar muladd/sq, polynomials (schoolbook, Karatsuba, interpolation, ECFFT), divisors, divisor evaluation, serialization, edge cases, Wei25519 bridge, point-to-scalar conversion, dispatch verification, the public C++ API (scalar/point/polynomial/divisor classes), and 1,146 cross-validated test vector checks (C++ API + C primitives).
 
 ### Fuzz Tests (`ranshaw-fuzz-tests`)
 
@@ -373,17 +373,17 @@ Options: `--seed N` (override PRNG seed, default `0xDEADBEEFCAFE1234`), `--quiet
 
 ### Test Vectors
 
-Portable test vectors are provided for downstream consumers implementing the Ran/Shaw curve cycle in other languages. The test vectors cover every public API operation (scalar arithmetic, point operations, MSM, Pedersen commitments, hash-to-curve, polynomials, divisors, Wei25519 bridge, and batch inversion) and are independently validated by a SageMath script.
+Portable test vectors are provided for downstream consumers implementing the Ran/Shaw curve cycle in other languages. The test vectors cover every public API operation (scalar arithmetic, point operations, MSM, Pedersen commitments, hash-to-curve, polynomials, divisors, Wei25519 bridge, and batch inversion) and are independently cross-validated by a Python script using the ecpy library.
 
-- **JSON**: `test_vectors/ranshaw_test_vectors.json` (~200 vectors, canonical JSON)
+- **JSON**: `test_vectors/ranshaw_test_vectors.json` (~320 vectors, canonical JSON)
 - **C++ header**: `include/ranshaw_test_vectors.h` (generated, for `#include` in C++ projects)
-- **SageMath validator**: `tools/test_vectors.sage` (independent cross-validation)
+- **Python validator**: `tools/validate_test_vectors.py` (independent cross-validation via ecpy)
 
 To regenerate (requires `BUILD_TOOLS=ON`):
 ```bash
 ./ranshaw-gen-testvectors > test_vectors/ranshaw_test_vectors.json
 python tools/json_to_header.py test_vectors/ranshaw_test_vectors.json include/ranshaw_test_vectors.h
-sage tools/test_vectors.sage --validate test_vectors/ranshaw_test_vectors.json
+python tools/validate_test_vectors.py test_vectors/ranshaw_test_vectors.json
 ```
 
 ### Full Test Matrix
@@ -392,10 +392,10 @@ CI runs 30 jobs across Linux (gcc-11, gcc-12, clang-14, clang-15), macOS (Homebr
 
 | Config | CMake flags | Unit Tests | Fuzz Tests |
 |--------|-------------|------------|------------|
-| FORCE_PORTABLE | `-DFORCE_PORTABLE=1` | 1,680–1,702 | 38,128–38,482 |
-| x64 no SIMD | `-DENABLE_AVX2=OFF -DENABLE_AVX512=OFF` | 1,679–1,701 | 38,128–38,482 |
-| x64 + AVX2 | `-DENABLE_AVX512=OFF` | 1,685–1,707 | 38,128–38,482 |
-| x64 + AVX2 + IFMA | (default) | 1,685–1,707 | 38,128–38,482 |
+| FORCE_PORTABLE | `-DFORCE_PORTABLE=1` | 1,682–1,702 | 38,128–38,482 |
+| x64 no SIMD | `-DENABLE_AVX2=OFF -DENABLE_AVX512=OFF` | 1,681–1,701 | 38,128–38,482 |
+| x64 + AVX2 | `-DENABLE_AVX512=OFF` | 1,687–1,707 | 38,128–38,482 |
+| x64 + AVX2 + IFMA | (default) | 1,687–1,707 | 38,128–38,482 |
 
 Ranges reflect ECFFT off (lower) vs ECFFT on (higher). SIMD configurations include additional dispatch verification tests. ECFFT configurations include additional ECFFT-specific polynomial multiplication tests.
 
