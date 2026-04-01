@@ -12,7 +12,7 @@ Polynomial multiplication via FFT requires an evaluation domain with specific al
 
 ## The Solution
 
-Instead of roots of unity, use x-coordinates from a carefully chosen auxiliary elliptic curve. A 2-to-1 isogeny (a special map between curves) sends pairs of x-coordinates to a single x-coordinate on the next curve — this gives the "split in half" step. A chain of 16 such isogenies takes a domain of 65,536 points down to a single point, one level at a time, mirroring the recursive halving in classical FFT.
+Instead of roots of unity, use x-coordinates from a carefully chosen auxiliary elliptic curve. A 2-to-1 isogeny (a special map between curves) sends pairs of x-coordinates to a single x-coordinate on the next curve — this gives the "split in half" step. A chain of such isogenies (16 levels for Fp, 15 for Fq) takes a domain of tens of thousands of points down to a single point, one level at a time, mirroring the recursive halving in classical FFT.
 
 At each level, a 2×2 "butterfly" matrix transforms pairs of values, analogous to the twiddle factors in classical FFT. These matrices are precomputed from the isogeny fiber structure and stored as part of the context.
 
@@ -40,9 +40,9 @@ The auxiliary curves and isogeny chains are precomputed and stored as `.inl` fil
 | Field | Auxiliary curve | Domain size | Levels | Data file |
 |-------|----------------|-------------|--------|-----------|
 | Fp | y² = x³ + x + 3427 (a = 1) | 65,536 | 16 | `ecfft_fp_data.inl` |
-| Fq | y² = x³ − 3x + b (a = −3) | 65,536 | 16 | `ecfft_fq_data.inl` |
+| Fq | y² = x³ − 3x + b (a = −3) | 32,768 | 15 | `ecfft_fq_data.inl` |
 
-Each `.inl` file contains the 65,536 coset x-coordinates (as 32-byte field elements) and the rational map coefficients (numerator/denominator polynomials) for each of the 16 isogeny levels.
+Each `.inl` file contains the coset x-coordinates (as 32-byte field elements) and the rational map coefficients (numerator/denominator polynomials) for each isogeny level. The Fp data has 65,536 coset points across 16 levels; the Fq data has 32,768 coset points across 15 levels.
 
 Both global contexts are initialized together by a single call to `ecfft_global_init()`, which loads the coset data, applies a bit-reversal permutation, and builds the per-level butterfly matrices using batch inversion for both Fp and Fq. Initialization is init-once and thread-safe — an atomic 3-state gate (uninitialized → initializing → ready) ensures exactly one thread does the work while concurrent callers spin until it completes. The ready state is terminal; there is no free or reset. If initialization fails (e.g. allocation failure), the gate resets so the next caller can retry.
 

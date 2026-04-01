@@ -262,8 +262,7 @@ static int pippenger_window_size(size_t n)
     return 11;
 }
 
-static void
-    msm_pippenger(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
+static void msm_pippenger(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     const int w = pippenger_window_size(n);
     const size_t num_buckets = (size_t)1 << (w - 1);
@@ -393,11 +392,7 @@ static void
 
 static const size_t STRAUS_PIPPENGER_CROSSOVER = 16;
 
-void ran_msm_vartime_portable(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n)
+void ran_msm_vartime_portable(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     if (n == 0)
     {

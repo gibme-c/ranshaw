@@ -30,7 +30,7 @@
  *
  * Shaw: y^2 = x^3 - 3x + b over F_q (q = 2^255 - gamma).
  * A = -3, B = b. Since A != 0 and B != 0, simplified SWU applies directly.
- * Z = -4 (non-square in F_q, g(B/(Z*A)) is square).
+ * Z = -1 (non-square in F_q, g(B/(Z*A)) is square).
  *
  * Since q ≡ 3 (mod 4), fq_sqrt computes z^((q+1)/4) which is the principal
  * square root when z is a QR. To check if gx is a QR, we compute sqrt and
@@ -56,21 +56,21 @@
 #include "shaw_constants.h"
 #include "shaw_ops.h"
 
-/* Z = -4 mod q */
+/* Z = -1 mod q */
 static const fq_fe SSWU_Z =
-    {0x6D2727927C79BULL, 0x596ECAD6B0DD6ULL, 0x7FFFFFEFDFDE0ULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
+    {0x04645EC70F85EULL, 0x1C72E61F4EE2DULL, 0x7FFFFFD2EC7ACULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /* -B/A = b/3 mod q */
 static const fq_fe SSWU_NEG_B_OVER_A =
-    {0x7588143C8C1C8ULL, 0x6A047460099B3ULL, 0x7FFD8A29A1B0FULL, 0x1203FE2F49B98ULL, 0x255B7D067872DULL};
+    {0x1576D988C94B0ULL, 0x30416E92A6BF3ULL, 0x60E7CC341F1CDULL, 0x2DE0528CA1516ULL, 0x4C021D4F8D4FEULL};
 
-/* B/(Z*A) = b/(-4*(-3)) mod q = b/12 mod q */
+/* B/(Z*A) = b/((-1)*(-3)) = b/3 mod q */
 static const fq_fe SSWU_B_OVER_ZA =
-    {0x7D62050F23072ULL, 0x7A811D180266CULL, 0x1FFF628A686C3ULL, 0x2480FF8BD26E6ULL, 0x0956DF419E1CBULL};
+    {0x1576D988C94B0ULL, 0x30416E92A6BF3ULL, 0x60E7CC341F1CDULL, 0x2DE0528CA1516ULL, 0x4C021D4F8D4FEULL};
 
 /* A = -3 mod q */
 static const fq_fe SSWU_A =
-    {0x6D2727927C79CULL, 0x596ECAD6B0DD6ULL, 0x7FFFFFEFDFDE0ULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
+    {0x04645EC70F85CULL, 0x1C72E61F4EE2DULL, 0x7FFFFFD2EC7ACULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /*
  * Constant-time equality check via serialization and OR-fold.

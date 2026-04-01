@@ -341,23 +341,29 @@ endif()
 # ── Auxiliary tools ──
 option(BUILD_TOOLS "Build auxiliary tools (ECFFT curve search)" OFF)
 if(BUILD_TOOLS)
-    add_executable(ranshaw-find-ecfft tools/find_ecfft_curve.cpp)
-    target_link_libraries(ranshaw-find-ecfft PRIVATE ranshaw)
-    ranshaw_harden_executable(ranshaw-find-ecfft)
+    # ECFFT tools use uint64_t field elements directly and require the x64 backend
+    if(NOT FORCE_PORTABLE)
+        add_executable(ranshaw-find-ecfft tools/find_ecfft_curve.cpp)
+        target_link_libraries(ranshaw-find-ecfft PRIVATE ranshaw)
+        ranshaw_harden_executable(ranshaw-find-ecfft)
 
-    add_executable(ranshaw-gen-ecfft tools/gen_ecfft_data.cpp)
-    target_link_libraries(ranshaw-gen-ecfft PRIVATE ranshaw)
-    ranshaw_harden_executable(ranshaw-gen-ecfft)
+        add_executable(ranshaw-gen-ecfft tools/gen_ecfft_data.cpp)
+        target_link_libraries(ranshaw-gen-ecfft PRIVATE ranshaw)
+        ranshaw_harden_executable(ranshaw-gen-ecfft)
+
+        if(NOT MSVC)
+            foreach(_tool ranshaw-find-ecfft ranshaw-gen-ecfft)
+                target_compile_options(${_tool} PRIVATE -Wno-sign-conversion)
+            endforeach()
+        endif()
+    endif()
 
     add_executable(ranshaw-gen-testvectors tools/gen_test_vectors.cpp)
     target_link_libraries(ranshaw-gen-testvectors PRIVATE ranshaw)
     ranshaw_harden_executable(ranshaw-gen-testvectors)
 
-    # Tools are developer utilities — relax sign-conversion warnings
     if(NOT MSVC)
-        foreach(_tool ranshaw-find-ecfft ranshaw-gen-ecfft ranshaw-gen-testvectors)
-            target_compile_options(${_tool} PRIVATE -Wno-sign-conversion)
-        endforeach()
+        target_compile_options(ranshaw-gen-testvectors PRIVATE -Wno-sign-conversion)
     endif()
 
     message(STATUS "RANSHAW: Auxiliary tools enabled")

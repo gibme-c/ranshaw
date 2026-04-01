@@ -3,6 +3,10 @@ build/
 build-gcc/
 cmake-build-*/
 
+# Python
+__pycache__/
+*.pyc
+
 # SageMath auto-generated preparsed files
 *.sage.py
 

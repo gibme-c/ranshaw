@@ -35,35 +35,35 @@
 #include <cstdint>
 
 /*
- * gamma = 85737960593035654572250192257530476641 in unsigned 10-limb
- * radix-2^25.5 form. Only the first 5 limbs are nonzero (gamma is 127 bits).
+ * gamma = 239666463199878229209741112730228557729 in unsigned 10-limb
+ * radix-2^25.5 form. Only the first 5 limbs are nonzero (gamma is 128 bits).
  *
  * Limb widths alternate 26/25/26/25/26 bits:
  *   limb0 = gamma & 0x3FFFFFF        (bits 0-25)
  *   limb1 = (gamma >> 26) & 0x1FFFFFF (bits 26-50)
  *   limb2 = (gamma >> 51) & 0x3FFFFFF (bits 51-76)
  *   limb3 = (gamma >> 77) & 0x1FFFFFF (bits 77-101)
- *   limb4 = (gamma >> 102) & 0x3FFFFFF (bits 102-126)
+ *   limb4 = (gamma >> 102) & 0x3FFFFFF (bits 102-127)
  *
  * Derived from GAMMA_51 (radix-2^51 representation):
- *   GAMMA_51[0] = 0x12D8D86D83861 -> limb0, limb1
- *   GAMMA_51[1] = 0x269135294F229 -> limb2, limb3
- *   GAMMA_51[2] = 0x102021F        -> limb4
+ *   GAMMA_51[0] = 0x7B9BA138F07A1 -> limb0, limb1
+ *   GAMMA_51[1] = 0x638D19E0B11D2 -> limb2, limb3
+ *   GAMMA_51[2] = 0x2D13853        -> limb4
  */
 #define GAMMA_25_LIMBS 5
-static const int32_t GAMMA_25[10] = {47724641, 4940641, 43315753, 10110164, 16908831, 0, 0, 0, 0, 0};
+static const int32_t GAMMA_25[10] = {59705249, 32403076, 34279890, 26096743, 47265875, 0, 0, 0, 0, 0};
 
 /*
  * q = 2^255 - gamma in 10-limb radix-2^25.5 form (unsigned, canonical).
  *
- * q bytes (LE): 9f c7 27 79 72 d2 b6 6e 58 6b 65 b7 2c 78 7f bf
+ * q bytes (LE): 5f f8 70 ec 45 46 68 71 a7 0f 73 39 0e eb b1 4b
  *               ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 7f
  *
  * Derived by splitting q into alternating 26/25-bit limbs:
  *   Q_25[i] = (q >> bit_position_i) & mask_i
  */
 static const int32_t Q_25[10] =
-    {19384223, 28613790, 23793110, 23444267, 50200032, 33554431, 67108863, 33554431, 67108863, 33554431};
+    {7403615, 1151355, 32828973, 7457688, 19842988, 33554431, 67108863, 33554431, 67108863, 33554431};
 
 /* Masks for alternating 26/25-bit limbs */
 static const int32_t FQ25_MASK26 = (1 << 26) - 1;

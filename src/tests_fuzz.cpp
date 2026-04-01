@@ -2353,8 +2353,7 @@ static void fuzz_all_path_cross_validation()
             for (int trial = 0; trial < 10; trial++)
             {
                 auto P = random_ran_point(rng);
-                std::string label =
-                    "ran_xval[s=" + std::string(edge_names[ei]) + ",t=" + std::to_string(trial) + "]";
+                std::string label = "ran_xval[s=" + std::string(edge_names[ei]) + ",t=" + std::to_string(trial) + "]";
                 test_ran(label, edge_scalars[ei], P);
             }
         }
@@ -2443,8 +2442,7 @@ static void fuzz_all_path_cross_validation()
             for (int trial = 0; trial < 10; trial++)
             {
                 auto P = random_shaw_point(rng);
-                std::string label =
-                    "shaw_xval[s=" + std::string(edge_names[ei]) + ",t=" + std::to_string(trial) + "]";
+                std::string label = "shaw_xval[s=" + std::string(edge_names[ei]) + ",t=" + std::to_string(trial) + "]";
                 test_shaw(label, edge_scalars[ei], P);
             }
         }

@@ -70,7 +70,7 @@ static void fp_from_limbs51(fp_fe r, const uint64_t limbs[5])
  * Cannot use ran_constants.h directly since fp_fe is int32_t[10] on 32-bit.
  */
 static const uint64_t RAN_B_LIMBS[5] =
-    {0x49ee1edd73ad4ULL, 0x7082277e6a456ULL, 0x2edecec10fdbcULL, 0x5c5f4a53b59fULL, 0x22e8c739b0ea7ULL};
+    {0x5AE9F1D1D36EULL, 0x70FAC0784C55EULL, 0x64B9E6AAE3D99ULL, 0x5B07FDB885266ULL, 0x4153F5EAB5C57ULL};
 
 /*
  * Deserialize 32 bytes to a Ran Jacobian point.

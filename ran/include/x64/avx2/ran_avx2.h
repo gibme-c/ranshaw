@@ -239,12 +239,8 @@ static inline void ran_pack_4x(
 /**
  * Unpack a 4-way fp10x4 Jacobian point into four fp51 Jacobian points.
  */
-static inline void ran_unpack_4x(
-    ran_jacobian *p0,
-    ran_jacobian *p1,
-    ran_jacobian *p2,
-    ran_jacobian *p3,
-    const ran_jacobian_4x *in)
+static inline void
+    ran_unpack_4x(ran_jacobian *p0, ran_jacobian *p1, ran_jacobian *p2, ran_jacobian *p3, const ran_jacobian_4x *in)
 {
     fp10 x0, x1, x2, x3, y0, y1, y2, y3, z0, z1, z2, z3;
 

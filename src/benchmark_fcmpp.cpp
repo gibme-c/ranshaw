@@ -559,8 +559,7 @@ int main(int argc, char *argv[])
     /* Wallet (1-input tx):
      *   4 × shaw_scalar_mul_divisor(253) + 8 × ran_scalar_mul_divisor(253)
      *   + 1 × shaw_multiexp(256) + 1 × ran_multiexp(128) */
-    const double wallet_us =
-        4.0 * shaw_div_us + 8.0 * ran_div_us + shaw_multiexp_256_us + ran_multiexp_128_us;
+    const double wallet_us = 4.0 * shaw_div_us + 8.0 * ran_div_us + shaw_multiexp_256_us + ran_multiexp_128_us;
     const double wallet_s = wallet_us / 1e6;
 
     /* Wallet + Privacy = wallet + node */

@@ -29,7 +29,7 @@
  * @brief AVX2 radix-2^25.5 Fq field element operations using scalar int64_t.
  *
  * Scalar radix-2^25.5 representation for the Crandall prime q = 2^255 - gamma,
- * where gamma = 85737960593035654572250192257530476641 (~127 bits). This exists
+ * where gamma = 239666463199878229209741112730228557729 (~128 bits). This exists
  * for the same reason as fp10_avx2.h: MSVC cannot keep _umul128 results in
  * registers when force-inlining into curve bodies, causing severe register
  * spilling. The radix-2^25.5 representation avoids 128-bit arithmetic entirely.
@@ -207,17 +207,18 @@ static FQ10_AVX2_FORCE_INLINE void fq10_add(fq10 h, const fq10 f, const fq10 g)
  * @brief fq10 subtraction: h = f - g with 2*q bias + carry with gamma fold.
  *
  * Adds 2*q to avoid underflow, subtracts g, then carry-propagates with
- * gamma fold at limb 9. The 2*Q_25 bias values are:
- *   {38768446, 57227580, 47586220, 46888534, 100400064,
+ * gamma fold at limb 9. Uses signed int64_t arithmetic so the 2q multiplier
+ * is sufficient regardless of subtrahend size. The 2*Q_25 bias values are:
+ *   {14807230, 2302710, 65657946, 14915376, 39685976,
  *    67108862, 134217726, 67108862, 134217726, 67108862}
  */
 static FQ10_AVX2_FORCE_INLINE void fq10_sub(fq10 h, const fq10 f, const fq10 g)
 {
-    h[0] = f[0] + 38768446LL - g[0];
-    h[1] = f[1] + 57227580LL - g[1];
-    h[2] = f[2] + 47586220LL - g[2];
-    h[3] = f[3] + 46888534LL - g[3];
-    h[4] = f[4] + 100400064LL - g[4];
+    h[0] = f[0] + 14807230LL - g[0];
+    h[1] = f[1] + 2302710LL - g[1];
+    h[2] = f[2] + 65657946LL - g[2];
+    h[3] = f[3] + 14915376LL - g[3];
+    h[4] = f[4] + 39685976LL - g[4];
     h[5] = f[5] + 67108862LL - g[5];
     h[6] = f[6] + 134217726LL - g[6];
     h[7] = f[7] + 67108862LL - g[7];

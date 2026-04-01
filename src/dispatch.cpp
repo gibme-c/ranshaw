@@ -58,53 +58,29 @@
 // x64 baseline (always available on 64-bit)
 void ran_scalarmult_x64(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
 void ran_scalarmult_vartime_x64(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
-void ran_msm_vartime_x64(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_x64(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 void shaw_scalarmult_x64(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
 void shaw_scalarmult_vartime_x64(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
-void shaw_msm_vartime_x64(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n);
+void shaw_msm_vartime_x64(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n);
 
 // AVX2 (compiled when ENABLE_AVX2=ON)
 #if !RANSHAW_NO_AVX2
 void ran_scalarmult_avx2(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
 void ran_scalarmult_vartime_avx2(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
-void ran_msm_vartime_avx2(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 void shaw_scalarmult_avx2(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
 void shaw_scalarmult_vartime_avx2(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
-void shaw_msm_vartime_avx2(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n);
+void shaw_msm_vartime_avx2(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n);
 #endif
 
 // IFMA (compiled when ENABLE_AVX512=ON)
 #if !RANSHAW_NO_AVX512
 void ran_scalarmult_ifma(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
 void ran_scalarmult_vartime_ifma(ran_jacobian *r, const unsigned char scalar[32], const ran_jacobian *p);
-void ran_msm_vartime_ifma(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_ifma(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 void shaw_scalarmult_ifma(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
 void shaw_scalarmult_vartime_ifma(shaw_jacobian *r, const unsigned char scalar[32], const shaw_jacobian *p);
-void shaw_msm_vartime_ifma(
-    shaw_jacobian *result,
-    const unsigned char *scalars,
-    const shaw_jacobian *points,
-    size_t n);
+void shaw_msm_vartime_ifma(shaw_jacobian *result, const unsigned char *scalars, const shaw_jacobian *points, size_t n);
 #endif
 
 // ── File-local dispatch table — initialized to x64 baseline ──

@@ -36,10 +36,6 @@
 
 #include <cstddef>
 
-void ran_msm_vartime_portable(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_portable(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 
 #endif // RANSHAW_PORTABLE_RAN_MSM_VARTIME_H

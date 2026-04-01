@@ -228,15 +228,8 @@ static inline void ran_dbl_fp10(fp10 rX, fp10 rY, fp10 rZ, const fp10 pX, const 
  *   Y3 = r * (V - X3) - 2*Y1*J
  *   Z3 = (Z1 + H)^2 - Z1Z1 - HH
  */
-static inline void ran_madd_fp10(
-    fp10 rX,
-    fp10 rY,
-    fp10 rZ,
-    const fp10 pX,
-    const fp10 pY,
-    const fp10 pZ,
-    const fp10 qx,
-    const fp10 qy)
+static inline void
+    ran_madd_fp10(fp10 rX, fp10 rY, fp10 rZ, const fp10 pX, const fp10 pY, const fp10 pZ, const fp10 qx, const fp10 qy)
 {
     fp10 Z1Z1, U2, S2, H, HH, I, J, rr, V, t0, t1;
 

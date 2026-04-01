@@ -28,7 +28,7 @@
  * @file fq_ops.h
  * @brief Basic F_q arithmetic: add, sub, neg, copy, zero, one, conditional operations.
  *
- * F_q uses 8q bias for subtraction (not 4q like F_p) because gamma ~ 2^126
+ * F_q uses 128q bias for subtraction (not 4q like F_p) because gamma ~ 2^128
  * makes lower limbs much smaller than 2^51.
  */
 
@@ -57,27 +57,28 @@ static inline void fq_add(fq_fe h, const fq_fe f, const fq_fe g)
 }
 
 /*
- * Subtraction in radix-2^51: add 8*q bias, subtract, carry chain with
- * gamma fold of top carry. Uses 8q bias (not 2q or 4q) because q's lower
- * limbs are << 2^51 (gamma ≈ 2^127), so 4q limbs < 2^53. The 8q bias
- * ensures all limbs exceed 2^53, handling 53-bit inputs from chained adds.
+ * Subtraction in radix-2^51: add 128*q bias, subtract, carry chain with
+ * gamma fold of top carry. Uses 128q bias (not 8q or 4q) because q's lower
+ * limbs are << 2^51 (gamma ≈ 2^128), so even 8q limbs can fall below 2^53.
+ * The 128q bias ensures all limbs exceed 2^53, handling 53-bit inputs from
+ * chained adds.
  */
 static inline void fq_sub(fq_fe h, const fq_fe f, const fq_fe g)
 {
     uint64_t c;
-    h[0] = f[0] + EIGHT_Q_51[0] - g[0];
+    h[0] = f[0] + BIAS_Q_51[0] - g[0];
     c = h[0] >> 51;
     h[0] &= FQ51_MASK;
-    h[1] = f[1] + EIGHT_Q_51[1] - g[1] + c;
+    h[1] = f[1] + BIAS_Q_51[1] - g[1] + c;
     c = h[1] >> 51;
     h[1] &= FQ51_MASK;
-    h[2] = f[2] + EIGHT_Q_51[2] - g[2] + c;
+    h[2] = f[2] + BIAS_Q_51[2] - g[2] + c;
     c = h[2] >> 51;
     h[2] &= FQ51_MASK;
-    h[3] = f[3] + EIGHT_Q_51[3] - g[3] + c;
+    h[3] = f[3] + BIAS_Q_51[3] - g[3] + c;
     c = h[3] >> 51;
     h[3] &= FQ51_MASK;
-    h[4] = f[4] + EIGHT_Q_51[4] - g[4] + c;
+    h[4] = f[4] + BIAS_Q_51[4] - g[4] + c;
     c = h[4] >> 51;
     h[4] &= FQ51_MASK;
     /* Gamma fold: carry * 2^255 ≡ carry * gamma (mod q) */

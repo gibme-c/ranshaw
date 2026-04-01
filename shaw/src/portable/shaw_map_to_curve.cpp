@@ -83,25 +83,25 @@ static void fq_from_limbs51(fq_fe r, const uint64_t limbs[5])
 
 /* SSWU constants as raw 5-limb radix-2^51 values (from x64 version) */
 
-/* Z = -4 mod q */
+/* Z = -1 mod q */
 static const uint64_t SSWU_Z_LIMBS[5] =
-    {0x6d2727927c79bULL, 0x596ecad6b0dd6ULL, 0x7fffffefdfde0ULL, 0x7ffffffffffffULL, 0x7ffffffffffffULL};
+    {0x04645EC70F85EULL, 0x1C72E61F4EE2DULL, 0x7FFFFFD2EC7ACULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /* -B/A = b/3 mod q */
 static const uint64_t SSWU_NEG_B_OVER_A_LIMBS[5] =
-    {0x7588143c8c1c8ULL, 0x6a047460099b3ULL, 0x7ffd8a29a1b0fULL, 0x1203fe2f49b98ULL, 0x255b7d067872dULL};
+    {0x1576D988C94B0ULL, 0x30416E92A6BF3ULL, 0x60E7CC341F1CDULL, 0x2DE0528CA1516ULL, 0x4C021D4F8D4FEULL};
 
-/* B/(Z*A) = b/(-4*(-3)) mod q = b/12 mod q */
+/* B/(Z*A) = b/((-1)*(-3)) = b/3 mod q */
 static const uint64_t SSWU_B_OVER_ZA_LIMBS[5] =
-    {0x7d62050f23072ULL, 0x7a811d180266cULL, 0x1fff628a686c3ULL, 0x2480ff8bd26e6ULL, 0x0956df419e1cbULL};
+    {0x1576D988C94B0ULL, 0x30416E92A6BF3ULL, 0x60E7CC341F1CDULL, 0x2DE0528CA1516ULL, 0x4C021D4F8D4FEULL};
 
 /* A = -3 mod q */
 static const uint64_t SSWU_A_LIMBS[5] =
-    {0x6d2727927c79cULL, 0x596ecad6b0dd6ULL, 0x7fffffefdfde0ULL, 0x7ffffffffffffULL, 0x7ffffffffffffULL};
+    {0x04645EC70F85CULL, 0x1C72E61F4EE2DULL, 0x7FFFFFD2EC7ACULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /* SHAW_B */
 static const uint64_t SHAW_B_LIMBS[5] =
-    {0x60983cb5a4558ULL, 0x3e0d5d201cd1bULL, 0x7ff89e7ce512fULL, 0x360bfa8ddd2caULL, 0x7012771369587ULL};
+    {0x3C002DD34C5B1ULL, 0x74516598A55ACULL, 0x22B764C970DBBULL, 0x9A0F7A5E3F44ULL, 0x640657EEA7EFBULL};
 
 /*
  * Constant-time equality check via serialization and OR-fold.

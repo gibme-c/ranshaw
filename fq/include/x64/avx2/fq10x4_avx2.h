@@ -48,7 +48,7 @@
  * gamma folds: when BOTH source position and gamma index are odd, the product
  * must be doubled.
  *
- * Subtraction uses a 2*q bias (different values per limb) to keep results
+ * Subtraction uses a 128*q bias (different values per limb) to keep results
  * non-negative, followed by carry propagation with gamma fold.
  */
 
@@ -122,51 +122,45 @@ static inline __m256i fq10x4_gamma3_2(void)
 }
 
 /*
- * 8*Q_25 bias values for subtraction. In radix-2^25.5:
+ * 128*Q_25 bias values for subtraction. In radix-2^25.5:
  *
- * CRITICAL: Fq = 2^255 - gamma, where gamma ~ 2^127. This means the lower
+ * CRITICAL: Fq = 2^255 - gamma, where gamma ~ 2^128. This means the lower
  * limbs of q in radix-2^25.5 are much smaller than their radix capacity.
- * A 2q bias is INSUFFICIENT because 2q's lower even limbs (38.8M, 47.6M)
- * are smaller than the max canonical 26-bit value (67.1M = 2^26-1), and
- * a 4q bias (77.5M, 95.2M) is insufficient for 27-bit limbs that arise
- * from a single fq10x4_add (e.g., 2*V in add-2007-bl). We use 8q bias:
- *   {155073784, 228910320, 190344880, 187554136, 401600256,
- *    268435448, 536870904, 268435448, 536870904, 268435448}
- *
- * 8q[0] = 155M > 134M (max 27-bit), so all limbs safely absorb single-add
- * non-canonical subtrahends. For 28-bit inputs from double-chained adds,
- * callers must normalize with fq10x4_carry_gamma before subtraction.
+ * We use 128q bias to ensure all limbs safely absorb single-add non-canonical
+ * subtrahends (27-bit even limbs, 26-bit odd limbs). For 28-bit inputs from
+ * double-chained adds, callers must normalize with fq10x4_carry_gamma before
+ * subtraction.
  *
  * This is the radix-2^25.5 analogue of the 5x51 representation needing
- * 8q bias (EIGHT_Q_51) instead of 4q for the same reason.
+ * 128q bias (BIAS_Q_51) instead of 4q for the same reason.
  */
 static inline __m256i fq10x4_bias0(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[0]);
+    return _mm256_set1_epi64x(128LL * Q_25[0]);
 }
 static inline __m256i fq10x4_bias1(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[1]);
+    return _mm256_set1_epi64x(128LL * Q_25[1]);
 }
 static inline __m256i fq10x4_bias2(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[2]);
+    return _mm256_set1_epi64x(128LL * Q_25[2]);
 }
 static inline __m256i fq10x4_bias3(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[3]);
+    return _mm256_set1_epi64x(128LL * Q_25[3]);
 }
 static inline __m256i fq10x4_bias4(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[4]);
+    return _mm256_set1_epi64x(128LL * Q_25[4]);
 }
 static inline __m256i fq10x4_bias_odd_upper(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[5]);
+    return _mm256_set1_epi64x(128LL * Q_25[5]);
 }
 static inline __m256i fq10x4_bias_even_upper(void)
 {
-    return _mm256_set1_epi64x(8LL * Q_25[6]);
+    return _mm256_set1_epi64x(128LL * Q_25[6]);
 }
 
 /* Shorthand macros */
@@ -294,7 +288,7 @@ static FQ10X4_FORCE_INLINE void fq10x4_carry_gamma(fq10x4 *h)
 
     /* Carry limb 4 -> 5: the gamma fold adds c*gamma[4] (up to ~30 bits when c is
        large from mul/sq output), leaving limb 4 far above 26 bits. Without this carry,
-       fq10x4_sub's 2q bias (100,400,064 ≈ 27 bits) cannot absorb the non-canonical
+       fq10x4_sub's 128q bias cannot absorb the non-canonical
        limb 4 as a subtrahend, causing unsigned underflow and garbage carries. */
     c = _mm256_srli_epi64(h->v[4], 26);
     h->v[5] = _mm256_add_epi64(h->v[5], c);
@@ -302,11 +296,11 @@ static FQ10X4_FORCE_INLINE void fq10x4_carry_gamma(fq10x4 *h)
 }
 
 /**
- * @brief Subtraction: h = f - g with 8*q bias + carry with gamma fold.
+ * @brief Subtraction: h = f - g with 128*q bias + carry with gamma fold.
  */
 static FQ10X4_FORCE_INLINE void fq10x4_sub(fq10x4 *h, const fq10x4 *f, const fq10x4 *g)
 {
-    /* Add 8*q bias and subtract g */
+    /* Add 128*q bias and subtract g */
     h->v[0] = _mm256_sub_epi64(_mm256_add_epi64(f->v[0], fq10x4_bias0()), g->v[0]);
     h->v[1] = _mm256_sub_epi64(_mm256_add_epi64(f->v[1], fq10x4_bias1()), g->v[1]);
     h->v[2] = _mm256_sub_epi64(_mm256_add_epi64(f->v[2], fq10x4_bias2()), g->v[2]);

@@ -87,8 +87,7 @@ static inline void ran_affine10_cneg(ran_affine_10 *r, int64_t b)
 /* Cost: 3M + 4S (fp10 ops)                                          */
 /* ------------------------------------------------------------------ */
 
-static FP10_AVX2_FORCE_INLINE void
-    ran_dbl_fp10(fp10 rX, fp10 rY, fp10 rZ, const fp10 pX, const fp10 pY, const fp10 pZ)
+static FP10_AVX2_FORCE_INLINE void ran_dbl_fp10(fp10 rX, fp10 rY, fp10 rZ, const fp10 pX, const fp10 pY, const fp10 pZ)
 {
     fp10 delta, gamma, beta, alpha;
     fp10 t0, t1, t2;
@@ -137,15 +136,8 @@ static FP10_AVX2_FORCE_INLINE void
 /* Cost: 7M + 4S (fp10 ops)                                          */
 /* ------------------------------------------------------------------ */
 
-static inline void ran_madd_fp10(
-    fp10 rX,
-    fp10 rY,
-    fp10 rZ,
-    const fp10 pX,
-    const fp10 pY,
-    const fp10 pZ,
-    const fp10 qx,
-    const fp10 qy)
+static inline void
+    ran_madd_fp10(fp10 rX, fp10 rY, fp10 rZ, const fp10 pX, const fp10 pY, const fp10 pZ, const fp10 qx, const fp10 qy)
 {
     fp10 Z1Z1, U2, S2, H, HH, I, J, rr, V, t0, t1;
 

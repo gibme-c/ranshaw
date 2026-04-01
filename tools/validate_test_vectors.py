@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Independent validation of ranshaw test vectors using pure Python + ecpy.
+Independent validation of ranshaw test vectors using Python + ecpy.
 
-Validates all test vector categories against a trusted implementation:
+Validates ALL test vector categories against a trusted implementation:
   - Scalar arithmetic: pure Python modular arithmetic
   - Point operations: ecpy (custom Weierstrass curves)
   - Polynomials: pure Python polynomial arithmetic mod p/q
   - Batch invert: pure Python modular inverse
-  - Divisors: deferred to SageMath (custom FCMP++ structure)
-  - Map-to-curve: deferred to SageMath (RFC 9380 SSWU)
+  - Divisors: polynomial evaluation cross-check
+  - Map-to-curve: pure Python RFC 9380 SSWU implementation
+  - Raw field arithmetic: Fp/Fq mul, sq, invert, sqrt
+  - Compressed points: G, 2G, 7G via ecpy point arithmetic
+  - SSWU vectors: pure Python SSWU cross-check
 
 All inputs are loaded from the JSON test vectors file — no hardcoded values.
 
@@ -253,7 +256,7 @@ def validate_scalar_section(t: TestRunner, data: dict, curve_name: str, order: i
 
 def validate_point_section(t: TestRunner, data: dict, curve_name: str,
                            p_field: int, a: int, b_val: int, order: int,
-                           gen_xy: tuple = None):
+                           gen_xy: tuple = None, sswu_z: int = None):
     t.begin_section(f"{curve_name} point")
 
     curve = WeierstrassCurve({
@@ -379,11 +382,34 @@ def validate_point_section(t: TestRunner, data: dict, curve_name: str,
         else:
             t.fail(f"x_coordinate/{v['label']}", f"expected {v['x_bytes']}, got {actual}")
 
-    # map_to_curve: defer to SageMath
+    # map_to_curve_single: validate via pure Python SSWU
+    Z_val = sswu_z if sswu_z is not None else find_sswu_z(p_field, a, b_val)
     for v in data.get("map_to_curve_single", []):
-        t.skip(f"map_to_curve_single/{v['label']}", "defer to SageMath")
+        label = v["label"]
+        u = from_le_hex(v["u"])
+        expected_hex = v["result"]
+        x, y = sswu_map_to_curve(u, p_field, a, b_val, Z_val)
+        actual_hex = encode_point(x, y, p_field)
+        if actual_hex == expected_hex:
+            t.ok(f"map_to_curve_single/{label}")
+        else:
+            t.fail(f"map_to_curve_single/{label}",
+                   f"expected {expected_hex[:32]}..., got {actual_hex[:32]}...")
     for v in data.get("map_to_curve_double", []):
-        t.skip(f"map_to_curve_double/{v['label']}", "defer to SageMath")
+        label = v["label"]
+        u0 = from_le_hex(v["u0"])
+        u1 = from_le_hex(v["u1"])
+        x0, y0 = sswu_map_to_curve(u0, p_field, a, b_val, Z_val)
+        x1, y1 = sswu_map_to_curve(u1, p_field, a, b_val, Z_val)
+        P0 = Point(x0, y0, curve)
+        P1 = Point(x1, y1, curve)
+        result = curve.add_point(P0, P1)
+        actual_hex = encode(result)
+        if actual_hex == v["result"]:
+            t.ok(f"map_to_curve_double/{label}")
+        else:
+            t.fail(f"map_to_curve_double/{label}",
+                   f"expected {v['result'][:32]}..., got {actual_hex[:32]}...")
 
 
 # ─── Polynomial validation ───────────────────────────────────────────────────
@@ -737,6 +763,243 @@ def validate_high_degree_poly_mul(t: TestRunner, data: dict,
                            f"result = {to_le_hex(result_of_x)}")
 
 
+# ─── SSWU map-to-curve (RFC 9380) ──────────────────────────────────────────
+
+def sswu_map_to_curve(u: int, p: int, a: int, b_val: int, Z: int):
+    """Simplified SWU map-to-curve per RFC 9380 Section 6.6.2. Returns (x, y)."""
+    u2 = (u * u) % p
+    Zu2 = (Z * u2) % p
+    Zu2_sq = (Zu2 * Zu2) % p
+    denom = ((-a) * pow(Zu2_sq + Zu2, -1, p)) % p if (Zu2_sq + Zu2) % p != 0 else ((-a) * pow(Z, -1, p)) % p
+
+    # x1 = (-b/a) * (1 + 1/(Z^2*u^4 + Z*u^2))
+    # Simplified: num_x1 = -b * (Z^2 * u^4 + Z * u^2 + 1), den_x1 = a * (Z^2 * u^4 + Z * u^2)
+    # But we use the standard formulation:
+    tv1 = (Zu2_sq + Zu2) % p
+    if tv1 == 0:
+        x1 = (b_val * pow(Z * a, -1, p)) % p
+    else:
+        x1 = ((-b_val) * pow(a, -1, p) * (1 + pow(tv1, -1, p))) % p
+    gx1 = (pow(x1, 3, p) + a * x1 + b_val) % p
+    x2 = (Z * u2 * x1) % p
+    gx2 = (pow(x2, 3, p) + a * x2 + b_val) % p
+
+    # Select x1 if gx1 is square, else x2
+    if pow(gx1, (p - 1) // 2, p) == 1 or gx1 == 0:
+        x, gx = x1, gx1
+    else:
+        x, gx = x2, gx2
+
+    y = mod_sqrt(gx, p)
+    assert y is not None, f"SSWU: sqrt failed for gx={gx}"
+
+    # Ensure sgn0(y) == sgn0(u)
+    if (y & 1) != (u & 1):
+        y = p - y
+
+    return (x, y)
+
+
+def find_sswu_z(p: int, a: int, b_val: int) -> int:
+    """Find the SSWU Z parameter: first z in {-1, -2, -3, ...} that is non-square
+       and for which g(b/(z*a)) is square."""
+    for z_cand in range(1, 1000):
+        z = (-z_cand) % p
+        # z must be non-square
+        if pow(z, (p - 1) // 2, p) == 1:
+            continue
+        # g(b/(z*a)) must be square
+        x_test = (b_val * pow(z * a, -1, p)) % p
+        gx_test = (pow(x_test, 3, p) + a * x_test + b_val) % p
+        if gx_test == 0 or pow(gx_test, (p - 1) // 2, p) == 1:
+            return z
+    raise RuntimeError("Could not find SSWU Z")
+
+
+# ─── Raw field arithmetic validation ──────────────────────────────────────────
+
+def validate_field_section(t: TestRunner, data: dict, field_name: str, p: int):
+    t.begin_section(f"{field_name} field arithmetic")
+
+    test_a = from_le_hex(data["test_a"])
+    test_b = from_le_hex(data["test_b"])
+
+    # mul_ab
+    expected = from_le_hex(data["mul_ab"])
+    actual = (test_a * test_b) % p
+    if actual == expected:
+        t.ok("mul_ab")
+    else:
+        t.fail("mul_ab", f"expected {to_le_hex(expected)}, got {to_le_hex(actual)}")
+
+    # sq_a
+    expected = from_le_hex(data["sq_a"])
+    actual = (test_a * test_a) % p
+    if actual == expected:
+        t.ok("sq_a")
+    else:
+        t.fail("sq_a", f"expected {to_le_hex(expected)}, got {to_le_hex(actual)}")
+
+    # inv_a
+    expected = from_le_hex(data["inv_a"])
+    actual = pow(test_a, -1, p)
+    if actual == expected:
+        t.ok("inv_a")
+    else:
+        t.fail("inv_a", f"expected {to_le_hex(expected)}, got {to_le_hex(actual)}")
+
+    # fq-specific: sqrt4, denom, denom_inv
+    if "sqrt4" in data:
+        expected = from_le_hex(data["sqrt4"])
+        # sqrt(4) should be 2 or p-2
+        if expected == 2 or expected == p - 2:
+            t.ok("sqrt4")
+        else:
+            t.fail("sqrt4", f"expected 2 or p-2, got {expected}")
+
+    if "denom" in data and "denom_inv" in data:
+        denom = from_le_hex(data["denom"])
+        denom_inv = from_le_hex(data["denom_inv"])
+        # Verify denom == test_a * test_b mod p
+        expected_denom = (test_a * test_b) % p
+        if denom != expected_denom:
+            t.fail("denom", f"expected a*b = {to_le_hex(expected_denom)}, got {to_le_hex(denom)}")
+        else:
+            t.ok("denom == a*b")
+        # Verify denom * denom_inv == 1
+        check = (denom * denom_inv) % p
+        if check == 1:
+            t.ok("denom * denom_inv == 1")
+        else:
+            t.fail("denom * denom_inv == 1", f"got {check}")
+
+
+# ─── Compressed point validation ──────────────────────────────────────────────
+
+def validate_compressed_points(t: TestRunner, data: dict,
+                               ran_p: int, ran_a: int, ran_b: int, ran_order: int,
+                               ran_gen_xy: tuple,
+                               shaw_p: int, shaw_a: int, shaw_b: int, shaw_order: int,
+                               shaw_gen_xy: tuple):
+    t.begin_section("compressed points")
+
+    ran_curve = WeierstrassCurve({
+        "name": "ran_cp", "type": "weierstrass", "size": 255,
+        "a": ran_a, "b": ran_b, "field": ran_p,
+        "generator": ran_gen_xy, "order": ran_order, "cofactor": 1,
+    })
+    shaw_curve = WeierstrassCurve({
+        "name": "shaw_cp", "type": "weierstrass", "size": 255,
+        "a": shaw_a, "b": shaw_b, "field": shaw_p,
+        "generator": shaw_gen_xy, "order": shaw_order, "cofactor": 1,
+    })
+
+    def check_point(label, hex_val, expected_pt, p_field):
+        encoded = encode_point(expected_pt.x, expected_pt.y, p_field) if not expected_pt.is_infinity else "00" * 32
+        if encoded == hex_val:
+            t.ok(label)
+        else:
+            t.fail(label, f"expected {encoded[:32]}..., got {hex_val[:32]}...")
+
+    # Ran points
+    G = Point(ran_gen_xy[0], ran_gen_xy[1], ran_curve)
+    G2 = ran_curve.add_point(G, G)
+    G3 = ran_curve.add_point(G2, G)
+    G4 = ran_curve.add_point(G2, G2)
+    G7 = ran_curve.add_point(G4, G3)
+
+    check_point("ran_g", data["ran_g"], G, ran_p)
+    check_point("ran_2g", data["ran_2g"], G2, ran_p)
+    check_point("ran_7g", data["ran_7g"], G7, ran_p)
+
+    # ran_gx = generator x-coordinate bytes
+    expected_gx = to_le_hex(ran_gen_xy[0])
+    if data["ran_gx"] == expected_gx:
+        t.ok("ran_gx")
+    else:
+        t.fail("ran_gx", f"expected {expected_gx[:32]}..., got {data['ran_gx'][:32]}...")
+
+    # Shaw points
+    sG = Point(shaw_gen_xy[0], shaw_gen_xy[1], shaw_curve)
+    sG2 = shaw_curve.add_point(sG, sG)
+    sG3 = shaw_curve.add_point(sG2, sG)
+    sG4 = shaw_curve.add_point(sG2, sG2)
+    sG7 = shaw_curve.add_point(sG4, sG3)
+
+    check_point("shaw_g", data["shaw_g"], sG, shaw_p)
+    check_point("shaw_2g", data["shaw_2g"], sG2, shaw_p)
+    check_point("shaw_7g", data["shaw_7g"], sG7, shaw_p)
+
+    expected_gx = to_le_hex(shaw_gen_xy[0])
+    if data["shaw_gx"] == expected_gx:
+        t.ok("shaw_gx")
+    else:
+        t.fail("shaw_gx", f"expected {expected_gx[:32]}..., got {data['shaw_gx'][:32]}...")
+
+
+# ─── SSWU vector validation ──────────────────────────────────────────────────
+
+def validate_sswu_vectors(t: TestRunner, data: dict,
+                          ran_p: int, ran_a: int, ran_b: int, ran_z: int,
+                          shaw_p: int, shaw_a: int, shaw_b: int, shaw_z: int):
+    t.begin_section("sswu vectors")
+
+    for label_suffix, u_bytes_hex, z, p, a, b_val, prefix in [
+        ("u1", "01" + "00" * 31, ran_z, ran_p, ran_a, ran_b, "ran"),
+        ("u2", "02" + "00" * 31, ran_z, ran_p, ran_a, ran_b, "ran"),
+        ("u42", "2a" + "00" * 31, ran_z, ran_p, ran_a, ran_b, "ran"),
+        ("u1", "01" + "00" * 31, shaw_z, shaw_p, shaw_a, shaw_b, "shaw"),
+        ("u2", "02" + "00" * 31, shaw_z, shaw_p, shaw_a, shaw_b, "shaw"),
+        ("u42", "2a" + "00" * 31, shaw_z, shaw_p, shaw_a, shaw_b, "shaw"),
+    ]:
+        key = f"{prefix}_{label_suffix}"
+        if key not in data:
+            t.skip(key, "not in data")
+            continue
+        u = from_le_hex(u_bytes_hex)
+        x, y = sswu_map_to_curve(u, p, a, b_val, z)
+        expected_hex = data[key]
+        actual_hex = encode_point(x, y, p)
+        if actual_hex == expected_hex:
+            t.ok(key)
+        else:
+            t.fail(key, f"expected {expected_hex[:32]}..., got {actual_hex[:32]}...")
+
+    # SSWU intermediates: ran_x2_u1, ran_gx2_u1, ran_y_u1
+    if "ran_x2_u1" in data:
+        u = 1
+        x, y = sswu_map_to_curve(u, ran_p, ran_a, ran_b, ran_z)
+        x_hex = to_le_hex(x)
+        if x_hex == data["ran_x2_u1"]:
+            t.ok("ran_x2_u1")
+        else:
+            t.fail("ran_x2_u1", f"expected {data['ran_x2_u1'][:32]}..., got {x_hex[:32]}...")
+
+    if "ran_gx2_u1" in data:
+        u = 1
+        x, y = sswu_map_to_curve(u, ran_p, ran_a, ran_b, ran_z)
+        gx = (pow(x, 3, ran_p) + ran_a * x + ran_b) % ran_p
+        gx_hex = to_le_hex(gx)
+        if gx_hex == data["ran_gx2_u1"]:
+            t.ok("ran_gx2_u1")
+        else:
+            t.fail("ran_gx2_u1", f"expected {data['ran_gx2_u1'][:32]}..., got {gx_hex[:32]}...")
+
+    if "ran_y_u1" in data:
+        u = 1
+        x, y = sswu_map_to_curve(u, ran_p, ran_a, ran_b, ran_z)
+        gx = (pow(x, 3, ran_p) + ran_a * x + ran_b) % ran_p
+        y_val = mod_sqrt(gx, ran_p)
+        # C++ fp_sqrt may return either root; check both
+        y_hex = to_le_hex(y_val)
+        y_neg_hex = to_le_hex(ran_p - y_val)
+        expected = data["ran_y_u1"]
+        if y_hex == expected or y_neg_hex == expected:
+            t.ok("ran_y_u1")
+        else:
+            t.fail("ran_y_u1", f"expected {expected[:32]}..., got {y_hex[:32]}... or {y_neg_hex[:32]}...")
+
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main():
@@ -755,6 +1018,13 @@ def main():
     A = params["curve_a"]                         # curve coefficient a (both curves)
     ran_b = from_le_hex(params["ran_b"])
     shaw_b = from_le_hex(params["shaw_b"])
+    ran_sswu_z = params.get("ran_sswu_z", None)
+    shaw_sswu_z = params.get("shaw_sswu_z", None)
+    # Convert Z to field element if present
+    if ran_sswu_z is not None:
+        ran_sswu_z = ran_sswu_z % P
+    if shaw_sswu_z is not None:
+        shaw_sswu_z = shaw_sswu_z % Q
 
     print(f"Ran: y^2 = x^3 + {A}x + b over Fp")
     print(f"  Fp = 0x{P:064x}")
@@ -781,8 +1051,8 @@ def main():
     validate_scalar_section(t, data["shaw_scalar"], "shaw", P)
 
     # Points
-    validate_point_section(t, data["ran_point"], "ran", P, A, ran_b, Q, ran_gen_xy)
-    validate_point_section(t, data["shaw_point"], "shaw", Q, A, shaw_b, P, shaw_gen_xy)
+    validate_point_section(t, data["ran_point"], "ran", P, A, ran_b, Q, ran_gen_xy, ran_sswu_z)
+    validate_point_section(t, data["shaw_point"], "shaw", Q, A, shaw_b, P, shaw_gen_xy, shaw_sswu_z)
 
     # Polynomials
     validate_polynomial_section(t, data["fp_polynomial"], "fp", P)
@@ -801,6 +1071,24 @@ def main():
     # High-degree polynomial multiplication
     if "high_degree_poly_mul" in data:
         validate_high_degree_poly_mul(t, data["high_degree_poly_mul"], P, Q)
+
+    # Raw field arithmetic
+    if "fp_field" in data:
+        validate_field_section(t, data["fp_field"], "fp", P)
+    if "fq_field" in data:
+        validate_field_section(t, data["fq_field"], "fq", Q)
+
+    # Compressed points
+    if "compressed_points" in data:
+        validate_compressed_points(t, data["compressed_points"],
+                                   P, A, ran_b, Q, ran_gen_xy,
+                                   Q, A, shaw_b, P, shaw_gen_xy)
+
+    # SSWU vectors
+    if "sswu_vectors" in data:
+        validate_sswu_vectors(t, data["sswu_vectors"],
+                              P, A, ran_b, ran_sswu_z,
+                              Q, A, shaw_b, shaw_sswu_z)
 
     sys.exit(t.summary())
 

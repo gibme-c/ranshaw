@@ -357,8 +357,7 @@ int main(int argc, char *argv[])
         std::cout << "--- Ran MSM ---" << std::endl;
 
         /* Prepare MSM data */
-        auto make_ran_msm_data =
-            [&](size_t n, std::vector<unsigned char> &scalars, std::vector<ran_jacobian> &points)
+        auto make_ran_msm_data = [&](size_t n, std::vector<unsigned char> &scalars, std::vector<ran_jacobian> &points)
         {
             scalars.resize(n * 32, 0);
             points.resize(n);
@@ -392,8 +391,7 @@ int main(int argc, char *argv[])
         std::cout << std::endl;
         std::cout << "--- Shaw MSM ---" << std::endl;
 
-        auto make_shaw_msm_data =
-            [&](size_t n, std::vector<unsigned char> &scalars, std::vector<shaw_jacobian> &points)
+        auto make_shaw_msm_data = [&](size_t n, std::vector<unsigned char> &scalars, std::vector<shaw_jacobian> &points)
         {
             scalars.resize(n * 32, 0);
             points.resize(n);

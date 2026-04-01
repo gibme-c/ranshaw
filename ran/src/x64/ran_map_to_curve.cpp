@@ -52,21 +52,21 @@
 #include "ran_constants.h"
 #include "ran_ops.h"
 
-/* Z = 7 */
+/* Z = -2 mod p */
 static const fp_fe SSWU_Z =
-    {0x0000000000007ULL, 0x0000000000000ULL, 0x0000000000000ULL, 0x0000000000000ULL, 0x0000000000000ULL};
+    {0x7FFFFFFFFFFEBULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /* -B/A = b/3 mod p */
 static const fp_fe SSWU_NEG_B_OVER_A =
-    {0x6dfa0a49d139cULL, 0x502b627f78c1cULL, 0x0f9f9a405a9e9ULL, 0x01eca6e1be735ULL, 0x0ba2ed133af8dULL};
+    {0x573A3509B467AULL, 0x5053957D6EC74ULL, 0x21934CE3A1488ULL, 0x4902A9E82C622ULL, 0x15C6A74E3C972ULL};
 
-/* B/(Z*A) = b/(7*(-3)) mod p */
+/* B/(Z*A) = b/((-2)*(-3)) = b/6 mod p */
 static const fp_fe SSWU_B_OVER_ZA =
-    {0x27256c3e98f69ULL, 0x6242f1edca2d7ULL, 0x7dc4a0d23c327ULL, 0x7fb99f045281cULL, 0x7e56706af7934ULL};
+    {0x2B9D1A84DA33DULL, 0x2829CABEB763AULL, 0x10C9A671D0A44ULL, 0x248154F416311ULL, 0x0AE353A71E4B9ULL};
 
 /* A = -3 mod p */
 static const fp_fe SSWU_A =
-    {0x7ffffffffffeaULL, 0x7ffffffffffffULL, 0x7ffffffffffffULL, 0x7ffffffffffffULL, 0x7ffffffffffffULL};
+    {0x7FFFFFFFFFFEAULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /*
  * Constant-time equality check via serialization and OR-fold.

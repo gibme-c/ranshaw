@@ -1222,9 +1222,9 @@ static int compute_v2(
 
 static void get_q_bytes(unsigned char q_bytes[32])
 {
-    uint64_t g0 = 0x12D8D86D83861ULL;
-    uint64_t g1 = 0x269135294F229ULL;
-    uint64_t g2 = 0x102021FULL;
+    uint64_t g0 = 0x7B9BA138F07A1ULL;
+    uint64_t g1 = 0x638D19E0B11D2ULL;
+    uint64_t g2 = 0x2D13853ULL;
 
     unsigned char gamma[32];
     std::memset(gamma, 0, 32);
@@ -2025,6 +2025,25 @@ static void print_inl(
         if (i > 0)
             printf(", ");
         printf("1");
+    }
+    printf("\n};\n");
+
+    // Pointer arrays for loop-based init (no hardcoded per-level entries)
+    printf("\nstatic const unsigned char *ECFFT_%s_ISO_NUM_PTRS[%d] = {\n    ", field_upper, v2);
+    for (int i = 0; i < v2; i++)
+    {
+        if (i > 0)
+            printf(", ");
+        printf("ECFFT_%s_ISO_NUM_%d", field_upper, i);
+    }
+    printf("\n};\n");
+
+    printf("\nstatic const unsigned char *ECFFT_%s_ISO_DEN_PTRS[%d] = {\n    ", field_upper, v2);
+    for (int i = 0; i < v2; i++)
+    {
+        if (i > 0)
+            printf(", ");
+        printf("ECFFT_%s_ISO_DEN_%d", field_upper, i);
     }
     printf("\n};\n");
 }

@@ -37,55 +37,55 @@
 static const uint64_t FQ51_MASK = (1ULL << 51) - 1;
 
 /*
- * q = 2^255 - gamma, where gamma = 85737960593035654572250192257530476641
- * gamma is 127 bits, fitting in 3 radix-2^51 limbs.
+ * q = 2^255 - gamma, where gamma = 239666463199878229209741112730228557729
+ * gamma is 128 bits, fitting in 3 radix-2^51 limbs.
  *
  * gamma in radix-2^51:
- *   GAMMA_51[0] = 0x12D8D86D83861
- *   GAMMA_51[1] = 0x269135294F229
- *   GAMMA_51[2] = 0x102021F
+ *   GAMMA_51[0] = 0x7B9BA138F07A1
+ *   GAMMA_51[1] = 0x638D19E0B11D2
+ *   GAMMA_51[2] = 0x2D13853
  *
- * 2*gamma in radix-2^51 (128 bits, 3 limbs):
- *   TWO_GAMMA_51[0] = 0x25B1B0DB070C2
- *   TWO_GAMMA_51[1] = 0x4D226A529E452
- *   TWO_GAMMA_51[2] = 0x204043E
+ * 2*gamma in radix-2^51 (129 bits, 3 limbs):
+ *   TWO_GAMMA_51[0] = 0x77374271E0F42
+ *   TWO_GAMMA_51[1] = 0x471A33C1623A5
+ *   TWO_GAMMA_51[2] = 0x5A270A7
  */
 #define GAMMA_51_LIMBS 3
-static const uint64_t GAMMA_51[5] = {0x12D8D86D83861ULL, 0x269135294F229ULL, 0x102021FULL, 0, 0};
+static const uint64_t GAMMA_51[5] = {0x7B9BA138F07A1ULL, 0x638D19E0B11D2ULL, 0x2D13853ULL, 0, 0};
 
 #define TWO_GAMMA_51_LIMBS 3
-static const uint64_t TWO_GAMMA_51[5] = {0x25B1B0DB070C2ULL, 0x4D226A529E452ULL, 0x204043EULL, 0, 0};
+static const uint64_t TWO_GAMMA_51[5] = {0x77374271E0F42ULL, 0x471A33C1623A5ULL, 0x5A270A7ULL, 0, 0};
 
 /*
  * 2*gamma in radix-2^64 (4 limbs, full 256-bit width).
  * Used by the 4×64 MULX+ADCX+ADOX multiplication path.
  * 2^256 ≡ 2*gamma (mod q), so the fold multiplies by TWO_GAMMA_64.
  */
-#define TWO_GAMMA_64_LIMBS 2
-static const uint64_t TWO_GAMMA_64[4] = {0x22925B1B0DB070C2ULL, 0x81010FA69135294FULL, 0, 0};
+#define TWO_GAMMA_64_LIMBS 3
+static const uint64_t TWO_GAMMA_64[4] = {0x1D2F7374271E0F42ULL, 0x689C29E38D19E0B1ULL, 0x1ULL, 0};
 
 /*
  * q in radix-2^51:
- *   Q_51[0] = 0x6D2727927C79F
- *   Q_51[1] = 0x596ECAD6B0DD6
- *   Q_51[2] = 0x7FFFFFEFDFDE0
+ *   Q_51[0] = 0x4645EC70F85F
+ *   Q_51[1] = 0x1C72E61F4EE2D
+ *   Q_51[2] = 0x7FFFFFD2EC7AC
  *   Q_51[3] = 0x7FFFFFFFFFFFF
  *   Q_51[4] = 0x7FFFFFFFFFFFF
  */
 static const uint64_t Q_51[5] =
-    {0x6D2727927C79FULL, 0x596ECAD6B0DD6ULL, 0x7FFFFFEFDFDE0ULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
+    {0x4645EC70F85FULL, 0x1C72E61F4EE2DULL, 0x7FFFFFD2EC7ACULL, 0x7FFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFULL};
 
 /*
- * 8*q in radix-2^51, used as bias in fq_sub to prevent underflow.
- * EIGHT_Q_51[i] = 8 * Q_51[i], all fit in 54 bits and all >= 2^53.
+ * 128*q bias in radix-2^51, used in fq_sub to prevent underflow.
+ * BIAS_Q_51[i] = 128 * Q_51[i], all fit in 58 bits and all >= 2^53.
  *
  * Fp uses 4p bias (all 4p limbs ≈ 2^53) because p = 2^255 − 19 has all limbs
- * near 2^51. For Fq = 2^255 − gamma (gamma ≈ 2^127), the lower limbs of q are
- * significantly less than 2^51, so 4q limbs are < 2^53. We need 8q to ensure
- * all bias limbs exceed 2^53, safely handling up to 53-bit input limbs
- * (two chained lazy additions before subtraction).
+ * near 2^51. For Fq = 2^255 − gamma (gamma ≈ 2^128), the lower limbs of q are
+ * significantly less than 2^51, so even 8q limbs can fall below 2^53. We use
+ * 128q to ensure all bias limbs comfortably exceed 2^53, handling up to 53-bit
+ * input limbs (two chained lazy additions before subtraction).
  */
-static const uint64_t EIGHT_Q_51[5] =
-    {0x369393C93E3CF8ULL, 0x2CB7656B586EB0ULL, 0x3FFFFFF7EFEF00ULL, 0x3FFFFFFFFFFFF8ULL, 0x3FFFFFFFFFFFF8ULL};
+static const uint64_t BIAS_Q_51[5] =
+    {0x2322F6387C2F80ULL, 0xE39730FA771680ULL, 0x3FFFFFE9763D600ULL, 0x3FFFFFFFFFFFF80ULL, 0x3FFFFFFFFFFFF80ULL};
 
 #endif // RANSHAW_X64_FQ51_H

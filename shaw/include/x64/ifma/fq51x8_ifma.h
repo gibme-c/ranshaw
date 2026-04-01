@@ -30,7 +30,7 @@
  *
  * This is the Fq field arithmetic layer for the 8-way batch scalarmult operations
  * over the Crandall prime q = 2^255 - gamma, where
- * gamma = 85737960593035654572250192257530476641 (~127 bits, 3 radix-2^51 limbs).
+ * gamma = 239666463199878229209741112730228557729 (~128 bits, 3 radix-2^51 limbs).
  *
  * Each fq51x8 holds 8 independent Fq field elements packed horizontally into
  * AVX-512 registers -- one element per 64-bit lane, 5 registers per fq51x8
@@ -178,31 +178,24 @@ static FQ51X8_FORCE_INLINE void fq51x8_carry(fq51x8 *h)
     h->v[3] = _mm512_and_si512(h->v[3], mask);
 }
 
-// -- Subtraction with 8q bias + carry --
-// To keep limbs non-negative, we add 8q before subtracting. The bias values
-// are EIGHT_Q_51[i] = 8 * Q_51[i] for each limb. The carry chain with gamma
+// -- Subtraction with 128q bias + carry --
+// To keep limbs non-negative, we add 128q before subtracting. The bias values
+// are BIAS_Q_51[i] = 128 * Q_51[i] for each limb. The carry chain with gamma
 // fold then normalizes back to <=51-bit limbs.
 //
 // Fp uses 4p bias because all p limbs ≈ 2^51, so 4p limbs ≈ 2^53. For Fq,
-// the lower limbs of q are much smaller than 2^51 (gamma ≈ 2^127), so
-// 4*Q_51[0] ≈ 2^52.77 < 2^53 -- insufficient for 53-bit operands produced
-// by chained additions in dbl_8x. We need 8q to ensure all bias limbs exceed
-// 2^53. All 8q limbs fit in 54 bits, well within the 64-bit lane.
-//
-// 8q bias values:
-//   limb 0: 8 * 0x6D2727927C79F = 0x369393C93E3CF8
-//   limb 1: 8 * 0x596ECAD6B0DD6 = 0x2CB7656B586EB0
-//   limb 2: 8 * 0x7FFFFFEFDFDE0 = 0x3FFFFFF7EFEF00
-//   limb 3: 8 * 0x7FFFFFFFFFFFF = 0x3FFFFFFFFFFFF8
-//   limb 4: 8 * 0x7FFFFFFFFFFFF = 0x3FFFFFFFFFFFF8
+// the lower limbs of q are much smaller than 2^51 (gamma ≈ 2^128), so
+// even 8*Q_51[0] can fall below 2^53 -- insufficient for 53-bit operands
+// produced by chained additions in dbl_8x. We need 128q to ensure all bias
+// limbs exceed 2^53. All 128q limbs fit in 58 bits, well within the 64-bit lane.
 
 static FQ51X8_FORCE_INLINE void fq51x8_sub(fq51x8 *h, const fq51x8 *f, const fq51x8 *g)
 {
-    const __m512i bias0 = _mm512_set1_epi64((long long)EIGHT_Q_51[0]);
-    const __m512i bias1 = _mm512_set1_epi64((long long)EIGHT_Q_51[1]);
-    const __m512i bias2 = _mm512_set1_epi64((long long)EIGHT_Q_51[2]);
-    const __m512i bias3 = _mm512_set1_epi64((long long)EIGHT_Q_51[3]);
-    const __m512i bias4 = _mm512_set1_epi64((long long)EIGHT_Q_51[4]);
+    const __m512i bias0 = _mm512_set1_epi64((long long)BIAS_Q_51[0]);
+    const __m512i bias1 = _mm512_set1_epi64((long long)BIAS_Q_51[1]);
+    const __m512i bias2 = _mm512_set1_epi64((long long)BIAS_Q_51[2]);
+    const __m512i bias3 = _mm512_set1_epi64((long long)BIAS_Q_51[3]);
+    const __m512i bias4 = _mm512_set1_epi64((long long)BIAS_Q_51[4]);
 
     h->v[0] = _mm512_add_epi64(_mm512_sub_epi64(f->v[0], g->v[0]), bias0);
     h->v[1] = _mm512_add_epi64(_mm512_sub_epi64(f->v[1], g->v[1]), bias1);
@@ -516,9 +509,17 @@ static FQ51X8_FORCE_INLINE void fq51x8_mul(fq51x8 *h, const fq51x8 *f, const fq5
             *cv[4 + j + 1] = _mm512_add_epi64(*cv[4 + j + 1], _mm512_slli_epi64(t, 1));
         }
 
-        // c9_hi * gamma -> positions 5..5+GAMMA_51_LIMBS-1 (c9_hi <= ~2 bits, products tiny)
+        // c9_hi * gamma -> positions 5..5+GAMMA_51_LIMBS-1
+        // c9_hi <= 3 (mul) or 7 (sq2). With 128-bit gamma, c9_hi * GAMMA_51[j]
+        // can exceed 52 bits (e.g., 3 * 0x7B9BA138F07A1 = 53 bits), so we must
+        // use madd52lo + madd52hi pairs to avoid silent IFMA truncation.
         for (int j = 0; j < GAMMA_51_LIMBS; j++)
-            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, _mm512_set1_epi64((long long)GAMMA_51[j]));
+        {
+            const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, gj);
+            t = _mm512_madd52hi_epu64(zero_v, c9_hi, gj);
+            *cv[5 + j + 1] = _mm512_add_epi64(*cv[5 + j + 1], _mm512_slli_epi64(t, 1));
+        }
     }
 
     fq51x8_crandall_reduce(h, c0, c1, c2, c3, c4, c5, c6, c7, c8);
@@ -658,8 +659,15 @@ static FQ51X8_FORCE_INLINE void fq51x8_sq2(fq51x8 *h, const fq51x8 *f)
         }
 
         // c9_hi * gamma -> positions 5..5+GAMMA_51_LIMBS-1
+        // In sq2, c9_hi can be up to 7. With 128-bit gamma, 7 * GAMMA_51[j]
+        // can reach 54 bits — must use madd52lo + madd52hi to avoid truncation.
         for (int j = 0; j < GAMMA_51_LIMBS; j++)
-            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, _mm512_set1_epi64((long long)GAMMA_51[j]));
+        {
+            const __m512i gj = _mm512_set1_epi64((long long)GAMMA_51[j]);
+            *cv[5 + j] = _mm512_madd52lo_epu64(*cv[5 + j], c9_hi, gj);
+            t = _mm512_madd52hi_epu64(zero_v, c9_hi, gj);
+            *cv[5 + j + 1] = _mm512_add_epi64(*cv[5 + j + 1], _mm512_slli_epi64(t, 1));
+        }
     }
 
     fq51x8_crandall_reduce(h, c0, c1, c2, c3, c4, c5, c6, c7, c8);

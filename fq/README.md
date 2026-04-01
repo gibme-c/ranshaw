@@ -1,6 +1,6 @@
 # fq — Field Arithmetic (F_q, q = 2^255 − γ)
 
-The companion field to Fp. Where Fp uses the well-known Ed25519 prime 2^255 − 19, Fq uses a different prime — a Crandall prime where q = 2^255 − γ and γ is approximately 2^127. This is the base field of the Shaw curve and the scalar field of the Ran curve. It exists because the Ran/Shaw curve cycle requires two distinct primes, and this one was chosen to make the cycle work.
+The companion field to Fp. Where Fp uses the well-known Ed25519 prime 2^255 − 19, Fq uses a different prime — a Crandall prime where q = 2^255 − γ and γ is 128 bits. This is the base field of the Shaw curve and the scalar field of the Ran curve. It exists because the Ran/Shaw curve cycle requires two distinct primes, and this one was chosen to make the cycle work.
 
 
 ## Why a Different Prime
@@ -10,7 +10,7 @@ The cycle property requires that each curve's group order equals the other curve
 
 ## What Makes It Harder
 
-With Fp, when a product overflows 2^255, you fold the overflow back by multiplying by 19 — a single small constant. Here, γ is about 127 bits wide, so the fold-back is a full multi-limb multiply. Same idea, significantly more work.
+With Fp, when a product overflows 2^255, you fold the overflow back by multiplying by 19 — a single small constant. Here, γ is 128 bits wide, so the fold-back is a full multi-limb multiply. Same idea, significantly more work.
 
 This is the core complexity difference between the two fields. The API is identical — `fq_add`, `fq_sub`, `fq_mul`, `fq_invert`, and so on — but every multiplication and squaring does substantially more reduction work under the hood. See [fp](../fp/README.md) for the shared algorithmic patterns.
 
@@ -29,9 +29,9 @@ The name comes from Crandall & Pomerance's *Prime Numbers* (Springer, 2005), whi
 
 ## Subtraction
 
-Subtraction is where the Crandall structure bites hardest. Fp uses a 4p bias (add 4p before subtracting to keep limbs positive). Fq needs an **8q bias** because γ ≈ 2^127 makes the lower limbs of q much smaller than the limb capacity. With a 4q bias, the bias limbs can be smaller than the subtrahend, causing unsigned underflow. The 8q bias ensures every bias limb exceeds even the largest inputs from two chained lazy additions.
+Subtraction is where the Crandall structure bites hardest. Fp uses a 4p bias (add 4p before subtracting to keep limbs positive). Fq needs a **128q bias** because γ being 128 bits makes the lower limbs of q much smaller than the limb capacity. With a smaller bias multiplier, the bias limbs can be smaller than the subtrahend, causing unsigned underflow. The 128q bias ensures every bias limb exceeds 2^53, preventing underflow even from the largest inputs after chained lazy additions.
 
-This same issue shows up in every representation — the AVX2 radix-2^25.5 backend also uses 8q bias for the same reason.
+This same issue shows up in every representation — the AVX2 radix-2^25.5 backend also uses 128q bias for the same reason.
 
 
 ## Inversion

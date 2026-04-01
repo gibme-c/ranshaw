@@ -458,6 +458,15 @@ def emit_high_degree_poly_mul_section(f, data):
     f.write("} // namespace high_degree_poly_mul\n\n")
 
 
+def emit_flat_field_section(f, section, ns_name):
+    """Emit a namespace with flat static const uint8_t[32] arrays from a key-value JSON section."""
+    f.write(f"namespace {ns_name} {{\n")
+    keys = list(section.keys())
+    for key in keys:
+        f.write(f"static const uint8_t {key}[32] = {hex_to_c_array(section[key])};\n")
+    f.write(f"}} // namespace {ns_name}\n\n")
+
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python json_to_header.py <input.json> <output.h>")
@@ -523,6 +532,20 @@ def main():
         # High-degree polynomial multiplication
         if "high_degree_poly_mul" in data:
             emit_high_degree_poly_mul_section(f, data["high_degree_poly_mul"])
+
+        # Raw field arithmetic
+        if "fp_field" in data:
+            emit_flat_field_section(f, data["fp_field"], "fp_field")
+        if "fq_field" in data:
+            emit_flat_field_section(f, data["fq_field"], "fq_field")
+
+        # Compressed point vectors
+        if "compressed_points" in data:
+            emit_flat_field_section(f, data["compressed_points"], "compressed_points")
+
+        # SSWU map-to-curve vectors
+        if "sswu_vectors" in data:
+            emit_flat_field_section(f, data["sswu_vectors"], "sswu_vectors")
 
         f.write("} // namespace ranshaw_test_vectors\n\n")
         f.write("#endif // RANSHAW_TEST_VECTORS_H\n")

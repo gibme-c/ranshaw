@@ -177,8 +177,7 @@ static int encode_signed_wbit(int16_t *digits, const unsigned char *scalar, int 
  * Each group of 4 scalars shares one 4-way accumulator, using fp10x4 arithmetic
  * for doubling and addition. Table lookups use per-lane conditional moves.
  */
-static void
-    msm_straus_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
+static void msm_straus_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     // Encode all scalars into signed 4-bit digits
     std::vector<int16_t> all_digits(n * 64);
@@ -399,8 +398,7 @@ static int pippenger_window_size(size_t n)
     return 11;
 }
 
-static void
-    msm_pippenger_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
+static void msm_pippenger_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     const int w = pippenger_window_size(n);
     const size_t num_buckets = (size_t)1 << (w - 1);
@@ -530,11 +528,7 @@ static void
 
 static const size_t STRAUS_PIPPENGER_CROSSOVER = 16;
 
-void ran_msm_vartime_avx2(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n)
+void ran_msm_vartime_avx2(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     if (n == 0)
     {

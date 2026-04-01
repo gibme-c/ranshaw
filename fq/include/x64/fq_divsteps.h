@@ -154,8 +154,8 @@ static const uint64_t FQ_M62 = (uint64_t(1) << 62) - 1;
  * FQ_NEG_QINV62 auto-derives via constexpr from FQ_MODULUS_S62.
  *
  * q as 4 x uint64_t (LE):
- *   w[0] = 0x6EB6D2727927C79F
- *   w[1] = 0xBF7F782CB7656B58
+ *   w[0] = 0x71684645EC70F85F
+ *   w[1] = 0x4BB1EB0E39730FA7
  *   w[2] = 0xFFFFFFFFFFFFFFFF
  *   w[3] = 0x7FFFFFFFFFFFFFFF
  *
@@ -167,9 +167,9 @@ static const uint64_t FQ_M62 = (uint64_t(1) << 62) - 1;
  *   s62[4] = w[3] >> 56
  */
 static const fq_signed62 FQ_MODULUS_S62 = {{
-    (int64_t)0x2EB6D2727927C79FLL,
-    (int64_t)0x3DFDE0B2DD95AD61LL,
-    (int64_t)0x3FFFFFFFFFFFFFFBLL,
+    (int64_t)0x31684645EC70F85FLL,
+    (int64_t)0x2EC7AC38E5CC3E9DLL,
+    (int64_t)0x3FFFFFFFFFFFFFF4LL,
     (int64_t)0x3FFFFFFFFFFFFFFFLL,
     (int64_t)0x7FLL,
 }};

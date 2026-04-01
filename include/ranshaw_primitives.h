@@ -59,8 +59,8 @@
 #define RANSHAW_PRIMITIVES_H
 
 /* Platform detection, CPUID, dispatch, and secure erase */
-#include "ranshaw_ct_barrier.h"
 #include "ranshaw_cpuid.h"
+#include "ranshaw_ct_barrier.h"
 #include "ranshaw_dispatch.h"
 #include "ranshaw_platform.h"
 #include "ranshaw_secure_erase.h"

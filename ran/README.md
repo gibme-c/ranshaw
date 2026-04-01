@@ -45,7 +45,7 @@ Both are variable-time (MSM inputs are public in the FCMP++ context). The AVX2 a
 
 Points are compressed to 32 bytes: the x-coordinate in little-endian, with the y-parity bit stored in bit 255. Deserialization (`ran_frombytes`) recovers y via square root and validates that the point is on the curve. It returns 0 on failure — if the x-coordinate doesn't correspond to a curve point, you get nothing.
 
-This validation matters for twist security. The Ran twist has ~107-bit security, which is strong but not infinite. Rejecting off-curve points at deserialization prevents twist attacks entirely.
+This validation matters for twist security. The Ran twist has ~254-bit security (twist order = 3 × large-prime), making twist attacks computationally infeasible. Rejecting off-curve points at deserialization provides defense-in-depth.
 
 
 ## Hash-to-Curve

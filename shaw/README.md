@@ -14,7 +14,7 @@ Shaw's base field is Fq (the Crandall prime q = 2^255 − γ), and its scalar fi
 
 The practical consequence is that Shaw point arithmetic is more expensive than Ran. Every field multiply involves the 3-stage Crandall reduction (see [fq](../fq/README.md)) instead of the simple ×19 fold that Fp enjoys. The algorithmic structure is identical — same Jacobian formulas, same window sizes, same MSM strategies — but each underlying field operation does more work.
 
-The generator point has affine x = 1, and the curve constant b is a different value than Ran's b (necessarily, since it's over a different field).
+The curve constant b is a different value than Ran's b (necessarily, since it's over a different field).
 
 
 ## Scalar Operations
@@ -28,4 +28,4 @@ Shaw scalars live in Fp (not Fq). This means `shaw_scalar_add`, `shaw_scalar_mul
 
 Serialization, validation, hash-to-curve, Pedersen commitments, batch affine conversion, MSM (Straus/Pippenger) — all structurally identical to Ran with `shaw_` prefixes and `fq_fe` coordinates. The same backend tiers exist (portable, x64, AVX2, IFMA), and the same 3 operations are runtime-dispatched (`shaw_scalarmult`, `shaw_scalarmult_vartime`, `shaw_msm_vartime`).
 
-The twist security is ~99 bits (vs ~107 for Ran), so on-curve validation at deserialization is equally important here.
+The twist security is ~254 bits (same as Ran), so on-curve validation at deserialization remains important as defense-in-depth.

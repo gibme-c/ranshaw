@@ -32,24 +32,24 @@
 /*
  * Compute z^(q-2) mod q via optimized addition chain.
  *
- * q-2 = 0x7fffffffffffffffffffffffffffffffbf7f782cb7656b586eb6d2727927c79d
+ * q-2 = 0x7fffffffffffffffffffffffffffffff4bb1eb0e39730fa771684645ec70f85d
  *
  * Decomposition:
  *   Upper 128 bits = 0x7fffffffffffffffffffffffffffffff = 2^127 - 1 (all ones)
- *   Lower 128 bits = 0xbf7f782cb7656b586eb6d2727927c79d
+ *   Lower 128 bits = 0x4bb1eb0e39730fa771684645ec70f85d
  *
  * Strategy:
  *   1. Build z^(2^127-1) via addition chain (~126 sq + 9 mul)
- *   2. Use 4-bit fixed window for bottom 128 bits (~128 sq + 32 mul)
- *   3. Precompute z^2..z^15 for the window table (~3 sq + 10 mul)
+ *   2. Use 4-bit fixed window for bottom 128 bits (~128 sq + 29 mul)
+ *   3. Precompute z^2..z^15 for the window table (~3 sq + 11 mul)
  *
- * Total: 254 sq + 50 mul (vs ~254 sq + 202 mul for naive bit-scan)
+ * Total: 254 sq + 47 mul (vs ~254 sq + 202 mul for naive bit-scan)
  */
 
 void fq_invert_portable(fq_fe out, const fq_fe z)
 {
     /* Precomputed table entries z^2 through z^15 */
-    fq_fe zt2, zt3, zt4, zt5, zt6, zt7, zt8, zt9, zt11, zt12, zt13, zt14, zt15;
+    fq_fe zt2, zt3, zt4, zt5, zt6, zt7, zt8, zt9, zt10, zt11, zt12, zt13, zt14, zt15;
 
     /* Addition chain temporaries */
     fq_fe x31, x10, x25, x50, x100, acc;
@@ -63,6 +63,7 @@ void fq_invert_portable(fq_fe out, const fq_fe z)
     fq25_chain_mul(zt7, zt4, zt3); /* z^7 */
     fq25_chain_sq(zt8, zt4); /* z^8 */
     fq25_chain_mul(zt9, zt8, z); /* z^9 */
+    fq25_chain_mul(zt10, zt8, zt2); /* z^10 */
     fq25_chain_mul(zt11, zt8, zt3); /* z^11 */
     fq25_chain_mul(zt12, zt8, zt4); /* z^12 */
     fq25_chain_mul(zt13, zt8, zt5); /* z^13 */
@@ -103,71 +104,71 @@ void fq_invert_portable(fq_fe out, const fq_fe z)
     fq25_chain_mul(acc, acc, zt3);
 
     /* ---- 4-bit window scan of bottom 128 bits ---- */
-    /* Lower 128 bits of q-2 = 0xbf7f782cb7656b586eb6d2727927c79d */
-    /* Nibbles (MSB first): b,f,7,f,7,8,2,c,b,7,6,5,6,b,5,8,6,e,b,6,d,2,7,2,7,9,2,7,c,7,9,d */
+    /* Lower 128 bits of q-2 = 0x4bb1eb0e39730fa771684645ec70f85d */
+    /* Nibbles (MSB first): 4,b,b,1,e,b,0,e,3,9,7,3,0,f,a,7,7,1,6,8,4,6,4,5,e,c,7,0,f,8,5,d */
 
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt11); /* b = 11 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt15); /* f = 15 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt7); /* 7 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt15); /* f = 15 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt7); /* 7 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt8); /* 8 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt2); /* 2 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt12); /* c = 12 */
+    fq25_chain_mul(acc, acc, zt4); /* 4 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt11); /* b = 11 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt7); /* 7 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt6); /* 6 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt5); /* 5 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt6); /* 6 */
-    fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt11); /* b = 11 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt5); /* 5 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt8); /* 8 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt6); /* 6 */
+    fq25_chain_mul(acc, acc, z); /* 1 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt14); /* e = 14 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt11); /* b = 11 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt6); /* 6 */
+    /* nibble 0: shift only, no multiply */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt13); /* d = 13 */
+    fq25_chain_mul(acc, acc, zt14); /* e = 14 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt2); /* 2 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt7); /* 7 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt2); /* 2 */
-    fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt7); /* 7 */
+    fq25_chain_mul(acc, acc, zt3); /* 3 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt9); /* 9 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt2); /* 2 */
+    fq25_chain_mul(acc, acc, zt7); /* 7 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt3); /* 3 */
+    fq25_chain_sqn(acc, acc, 4);
+    /* nibble 0: shift only, no multiply */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt15); /* f = 15 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt10); /* a = 10 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt7); /* 7 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt7); /* 7 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, z); /* 1 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt6); /* 6 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt8); /* 8 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt4); /* 4 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt6); /* 6 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt4); /* 4 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt5); /* 5 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt14); /* e = 14 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt12); /* c = 12 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt7); /* 7 */
     fq25_chain_sqn(acc, acc, 4);
-    fq25_chain_mul(acc, acc, zt9); /* 9 */
+    /* nibble 0: shift only, no multiply */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt15); /* f = 15 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt8); /* 8 */
+    fq25_chain_sqn(acc, acc, 4);
+    fq25_chain_mul(acc, acc, zt5); /* 5 */
     fq25_chain_sqn(acc, acc, 4);
     fq25_chain_mul(acc, acc, zt13); /* d = 13 */
 
@@ -182,6 +183,7 @@ void fq_invert_portable(fq_fe out, const fq_fe z)
     ranshaw_secure_erase(zt7, sizeof(fq_fe));
     ranshaw_secure_erase(zt8, sizeof(fq_fe));
     ranshaw_secure_erase(zt9, sizeof(fq_fe));
+    ranshaw_secure_erase(zt10, sizeof(fq_fe));
     ranshaw_secure_erase(zt11, sizeof(fq_fe));
     ranshaw_secure_erase(zt12, sizeof(fq_fe));
     ranshaw_secure_erase(zt13, sizeof(fq_fe));

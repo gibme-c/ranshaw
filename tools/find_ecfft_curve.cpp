@@ -68,6 +68,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -155,11 +156,12 @@ struct Prng
 // Shared state
 // ============================================================================
 
-static std::atomic<int> g_trials_done {0};
+static std::atomic<uint64_t> g_trials_done {0};
 static std::atomic<int> g_found {0};
 static std::atomic<int> g_best_levels {0};
 static std::mutex g_print_mutex;
 static std::atomic<bool> g_stop {false};
+static FILE *g_outfile = nullptr;
 
 struct Candidate
 {
@@ -1644,9 +1646,9 @@ static int compute_v2(
 
 static void get_q_bytes(unsigned char q_bytes[32])
 {
-    uint64_t g0 = 0x12D8D86D83861ULL;
-    uint64_t g1 = 0x269135294F229ULL;
-    uint64_t g2 = 0x102021FULL;
+    uint64_t g0 = 0x7B9BA138F07A1ULL;
+    uint64_t g1 = 0x638D19E0B11D2ULL;
+    uint64_t g2 = 0x2D13853ULL;
 
     unsigned char gamma[32];
     std::memset(gamma, 0, 32);
@@ -1749,7 +1751,7 @@ static void get_p_bytes(unsigned char p_bytes[32])
 // Status thread
 // ============================================================================
 
-static void status_thread_fn(int total_trials, int num_threads, std::chrono::steady_clock::time_point start_time)
+static void status_thread_fn(uint64_t total_trials, int num_threads, std::chrono::steady_clock::time_point start_time)
 {
     while (!g_stop.load(std::memory_order_relaxed))
     {
@@ -1757,7 +1759,7 @@ static void status_thread_fn(int total_trials, int num_threads, std::chrono::ste
         if (g_stop.load(std::memory_order_relaxed))
             break;
 
-        int done = g_trials_done.load(std::memory_order_relaxed);
+        uint64_t done = g_trials_done.load(std::memory_order_relaxed);
         int found = g_found.load(std::memory_order_relaxed);
         int best = g_best_levels.load(std::memory_order_relaxed);
         auto now = std::chrono::steady_clock::now();
@@ -1768,7 +1770,7 @@ static void status_thread_fn(int total_trials, int num_threads, std::chrono::ste
         std::lock_guard<std::mutex> lock(g_print_mutex);
         fprintf(
             stderr,
-            "  [%5.1f%%] %d / %d trials, %d hits, best levels=%d, %.0f curves/sec (%d threads)\n",
+            "  [%5.1f%%] %" PRIu64 " / %" PRIu64 " trials, %d hits, best levels=%d, %.0f curves/sec (%d threads)\n",
             pct,
             done,
             total_trials,
@@ -1804,24 +1806,60 @@ static void fe_from_int(fe_t out, int val, const FieldOps *ops)
 // Generic worker
 // ============================================================================
 
+/*
+ * Scalar field-element exponentiation: base^exp mod p.
+ * exp given as little-endian bit array bits[0..msb], MSB-first square-and-multiply.
+ */
+static void fe_pow(fe_t result, const fe_t base, const int *bits, int msb, const FieldOps *ops)
+{
+    ops->one(result);
+    for (int i = msb; i >= 0; i--)
+    {
+        fe_t tmp;
+        ops->sq(tmp, result);
+        ops->copy(result, tmp);
+        if (bits[i])
+            ops->mul(result, result, base);
+    }
+}
+
+/*
+ * Euler criterion: returns 1 if z is a quadratic residue mod p, 0 otherwise.
+ * Computes z^((p-1)/2) and checks if the result equals 1.
+ */
+static int fe_is_qr(const fe_t z, const int *pm1_half_bits, int pm1_half_msb, const FieldOps *ops)
+{
+    fe_t result;
+    fe_pow(result, z, pm1_half_bits, pm1_half_msb, ops);
+    fe_t one;
+    ops->one(one);
+    fe_t diff;
+    ops->sub(diff, result, one);
+    return !ops->isnonzero(diff);
+}
+
 static void worker(
     int thread_id,
-    int trials_start,
-    int trials_count,
+    uint64_t trials_start,
+    uint64_t trials_count,
     const int *field_bits,
     int field_msb,
+    const int *pm1_half_bits,
+    int pm1_half_msb,
     int min_levels,
     const FieldOps *ops,
     const char *field_name,
-    int a_int)
+    int a_int,
+    uint64_t user_seed)
 {
     Prng rng;
-    rng.seed((uint64_t)thread_id * 0x9E3779B97F4A7C15ULL + (uint64_t)trials_start);
+    uint64_t base_seed = (uint64_t)thread_id * 0x9E3779B97F4A7C15ULL + trials_start;
+    rng.seed(user_seed ? (user_seed ^ base_seed) : base_seed);
 
     fe_t a;
     fe_from_int(a, a_int, ops);
 
-    for (int trial = 0; trial < trials_count; trial++)
+    for (uint64_t trial = 0; trial < trials_count; trial++)
     {
         if (g_stop.load(std::memory_order_relaxed))
             break;
@@ -1855,6 +1893,30 @@ static void worker(
 
         ops->add(disc, four_a3, b2_27);
         if (!ops->isnonzero(disc))
+        {
+            g_trials_done.fetch_add(1, std::memory_order_relaxed);
+            continue;
+        }
+
+        /*
+         * Discriminant QR pre-filter (Euler criterion).
+         *
+         * For x^3 + ax + b to split completely over GF(p), its discriminant
+         * Delta = -4a^3 - 27b^2 must be a quadratic residue. If Delta is NOT
+         * a QR, the cubic cannot split → no full 2-torsion. Skip early.
+         *
+         * Cost: ~254 sq + ~127 mul (scalar exponentiation) vs ~2800 field ops
+         * for the full polynomial Frobenius check. Filters ~2/3 of candidates.
+         *
+         * Note: disc here is 4a^3 + 27b^2 (positive form). The actual curve
+         * discriminant is -(4a^3 + 27b^2). Since -1 may or may not be QR,
+         * we check disc itself: if disc is not QR AND -1 is QR, then -disc
+         * is not QR either. If -1 is not QR, then -disc IS QR when disc is
+         * not. So we must check -disc (the actual discriminant) for QR.
+         */
+        fe_t neg_disc;
+        ops->neg(neg_disc, disc);
+        if (!fe_is_qr(neg_disc, pm1_half_bits, pm1_half_msb, ops))
         {
             g_trials_done.fetch_add(1, std::memory_order_relaxed);
             continue;
@@ -1902,6 +1964,19 @@ static void worker(
                         levels,
                         v2,
                         1 << levels);
+                    if (g_outfile)
+                    {
+                        fprintf(
+                            g_outfile,
+                            "field=%s a=%d b=0x%s levels=%d v2=%d domain=%d\n",
+                            field_name,
+                            a_int,
+                            b_hex,
+                            levels,
+                            v2,
+                            1 << levels);
+                        fflush(g_outfile);
+                    }
                 }
             }
         }
@@ -1914,7 +1989,8 @@ static void worker(
 // Search
 // ============================================================================
 
-static int search_field(const char *field, int max_trials, int min_levels, int num_threads, int a_int)
+static int
+    search_field(const char *field, uint64_t max_trials, int min_levels, int num_threads, int a_int, uint64_t user_seed)
 {
     unsigned char field_bytes[32];
     int bits[255];
@@ -1944,14 +2020,43 @@ static int search_field(const char *field, int max_trials, int min_levels, int n
     while (msb > 0 && bits[msb] == 0)
         msb--;
 
-    fprintf(
-        stderr,
-        "Trials: %d, min levels: %d (domain >= %d), threads: %d\n",
-        max_trials,
-        min_levels,
-        1 << min_levels,
-        num_threads);
-    fprintf(stderr, "2-descent halving chains for native computation.\n\n");
+    if (user_seed)
+        fprintf(
+            stderr,
+            "Trials: %" PRIu64 ", min levels: %d (domain >= %d), threads: %d, seed: %" PRIu64 "\n",
+            max_trials,
+            min_levels,
+            1 << min_levels,
+            num_threads,
+            user_seed);
+    else
+        fprintf(
+            stderr,
+            "Trials: %" PRIu64 ", min levels: %d (domain >= %d), threads: %d, seed: deterministic\n",
+            max_trials,
+            min_levels,
+            1 << min_levels,
+            num_threads);
+    fprintf(stderr, "2-descent halving chains for native computation.\n");
+    fprintf(stderr, "Discriminant QR pre-filter enabled (Euler criterion).\n\n");
+
+    // Write output file header
+    if (g_outfile)
+    {
+        fprintf(g_outfile, "# ECFFT Curve Search Results\n");
+        fprintf(g_outfile, "# field=%s a=%d\n", field, a_int);
+        fprintf(g_outfile, "# trials=%" PRIu64 " min_levels=%d threads=%d\n", max_trials, min_levels, num_threads);
+        if (user_seed)
+            fprintf(g_outfile, "# seed=%" PRIu64 "\n", user_seed);
+        else
+            fprintf(g_outfile, "# seed=deterministic\n");
+        fprintf(g_outfile, "#\n");
+        fflush(g_outfile);
+    }
+
+    // Precompute (p-1)/2 bits for Euler criterion QR check
+    int pm1_half_bits[255];
+    int pm1_half_msb = compute_pm1_half_bits(pm1_half_bits, bits);
 
     g_trials_done.store(0);
     g_found.store(0);
@@ -1966,13 +2071,14 @@ static int search_field(const char *field, int max_trials, int min_levels, int n
     const FieldOps *ops = is_fq ? &FQ_OPS : &FP_OPS;
 
     std::vector<std::thread> workers;
-    int per_thread = max_trials / num_threads;
-    int remainder = max_trials % num_threads;
-    int offset = 0;
+    uint64_t per_thread = max_trials / num_threads;
+    uint64_t remainder = max_trials % num_threads;
+    uint64_t offset = 0;
     for (int t = 0; t < num_threads; t++)
     {
-        int count = per_thread + (t < remainder ? 1 : 0);
-        workers.emplace_back(worker, t, offset, count, bits, msb, min_levels, ops, field, a_int);
+        uint64_t count = per_thread + (t < remainder ? 1 : 0);
+        workers.emplace_back(
+            worker, t, offset, count, bits, msb, pm1_half_bits, pm1_half_msb, min_levels, ops, field, a_int, user_seed);
         offset += count;
     }
     for (auto &w : workers)
@@ -1983,17 +2089,17 @@ static int search_field(const char *field, int max_trials, int min_levels, int n
 
     auto end_time = std::chrono::steady_clock::now();
     double elapsed = std::chrono::duration<double>(end_time - start_time).count();
-    int done = g_trials_done.load();
+    uint64_t done = g_trials_done.load();
     int found = (int)g_candidates.size();
 
     fprintf(
         stderr,
-        "\nDone: %d hits (levels >= %d) from %d trials in %.1f sec (%.0f curves/sec)\n",
+        "\nDone: %d hits (levels >= %d) from %" PRIu64 " trials in %.1f sec (%.0f curves/sec)\n",
         found,
         min_levels,
         done,
         elapsed,
-        done / elapsed);
+        (double)done / elapsed);
     fprintf(stderr, "Best levels: %d (domain %d)\n", g_best_levels.load(), 1 << g_best_levels.load());
 
     return found;
@@ -2009,9 +2115,11 @@ static void usage()
     printf("Options:\n");
     printf("  --field fp|fq      Field to search over (default: fq)\n");
     printf("  --a N              Curve parameter a (small integer, default: -3)\n");
-    printf("  --trials N         Number of random curves to try (default: 100000)\n");
+    printf("  --trials N|max     Number of random curves to try (default: 100000, max = unlimited)\n");
     printf("  --min-levels N     Minimum ECFFT levels to report (default: 12)\n");
     printf("  --cpus auto|N      Number of threads (default: 1, auto = all cores)\n");
+    printf("  --seed N|auto      PRNG seed (default: deterministic, auto = system clock)\n");
+    printf("  -o <path>          Write hits to output file (incremental, flushed per hit)\n");
     printf("  --help             Show this help\n\n");
     printf("Algorithm:\n");
     printf("  For each random b, tests y^2 = x^3 + ax + b for full 2-torsion,\n");
@@ -2031,10 +2139,12 @@ static void usage()
 int main(int argc, char **argv)
 {
     const char *field = "fq";
-    int trials = 100000;
+    const char *outpath = nullptr;
+    uint64_t trials = 100000;
     int min_levels = 12;
     int num_threads = 1;
     int a_int = -3;
+    uint64_t user_seed = 0;
 
     for (int i = 1; i < argc; i++)
     {
@@ -2043,7 +2153,21 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--a") == 0 && i + 1 < argc)
             a_int = atoi(argv[++i]);
         else if (strcmp(argv[i], "--trials") == 0 && i + 1 < argc)
-            trials = atoi(argv[++i]);
+        {
+            i++;
+            if (strcmp(argv[i], "max") == 0)
+                trials = UINT64_MAX;
+            else
+                trials = strtoull(argv[i], nullptr, 10);
+        }
+        else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc)
+        {
+            i++;
+            if (strcmp(argv[i], "auto") == 0)
+                user_seed = (uint64_t)std::chrono::steady_clock::now().time_since_epoch().count();
+            else
+                user_seed = strtoull(argv[i], nullptr, 10);
+        }
         else if (strcmp(argv[i], "--min-levels") == 0 && i + 1 < argc)
             min_levels = atoi(argv[++i]);
         else if (strcmp(argv[i], "--min-v2") == 0 && i + 1 < argc)
@@ -2067,6 +2191,8 @@ int main(int argc, char **argv)
                     num_threads = 1;
             }
         }
+        else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
+            outpath = argv[++i];
         else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
         {
             usage();
@@ -2086,10 +2212,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    if (outpath)
+    {
+        g_outfile = fopen(outpath, "w");
+        if (!g_outfile)
+        {
+            fprintf(stderr, "Error: cannot open output file: %s\n", outpath);
+            return 1;
+        }
+        fprintf(stderr, "Output file: %s\n", outpath);
+    }
+
     fprintf(stderr, "ECFFT Curve Search (2-Descent)\n");
     fprintf(stderr, "==============================\n\n");
 
-    int found = search_field(field, trials, min_levels, num_threads, a_int);
+    int found = search_field(field, trials, min_levels, num_threads, a_int, user_seed);
 
     // Print results to stdout
     for (size_t i = 0; i < g_candidates.size(); i++)
@@ -2108,6 +2245,9 @@ int main(int argc, char **argv)
 
     if (found == 0)
         fprintf(stderr, "No curves with levels >= %d found. Try more trials.\n", min_levels);
+
+    if (g_outfile)
+        fclose(g_outfile);
 
     return 0;
 }

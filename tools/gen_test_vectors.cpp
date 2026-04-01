@@ -2860,6 +2860,201 @@ static void emit_batch_invert()
     close_obj(); /* batch_invert */
 }
 
+/* ── Raw field arithmetic vectors ── */
+
+static void emit_fp_field()
+{
+    open_obj("fp_field");
+
+    uint8_t buf[32];
+    fp_fe a, b, c;
+    fp_frombytes(a, test_a_bytes);
+    fp_frombytes(b, test_b_bytes);
+
+    emit_hex("test_a", test_a_bytes, 32);
+    emit_hex("test_b", test_b_bytes, 32);
+
+    fp_mul(c, a, b);
+    fp_tobytes(buf, c);
+    emit_hex("mul_ab", buf, 32);
+
+    fp_sq(c, a);
+    fp_tobytes(buf, c);
+    emit_hex("sq_a", buf, 32);
+
+    fp_invert(c, a);
+    fp_tobytes(buf, c);
+    emit_hex("inv_a", buf, 32, true);
+
+    close_obj();
+}
+
+static void emit_fq_field()
+{
+    open_obj("fq_field");
+
+    uint8_t buf[32];
+    fq_fe a, b, c;
+    fq_frombytes(a, test_a_bytes);
+    fq_frombytes(b, test_b_bytes);
+
+    emit_hex("test_a", test_a_bytes, 32);
+    emit_hex("test_b", test_b_bytes, 32);
+
+    fq_mul(c, a, b);
+    fq_tobytes(buf, c);
+    emit_hex("mul_ab", buf, 32);
+
+    fq_sq(c, a);
+    fq_tobytes(buf, c);
+    emit_hex("sq_a", buf, 32);
+
+    fq_invert(c, a);
+    fq_tobytes(buf, c);
+    emit_hex("inv_a", buf, 32);
+
+    /* sqrt(4) — should yield 2 (or q-2) */
+    static const uint8_t four[32] = {4};
+    fq_fe four_fe;
+    fq_frombytes(four_fe, four);
+    fq_sqrt(c, four_fe);
+    fq_tobytes(buf, c);
+    emit_hex("sqrt4", buf, 32);
+
+    /* Full-limb inverse cross-check: denom = a*b, denom_inv = inv(a*b) */
+    fq_fe denom;
+    fq_mul(denom, a, b);
+    fq_tobytes(buf, denom);
+    emit_hex("denom", buf, 32);
+
+    fq_invert(c, denom);
+    fq_tobytes(buf, c);
+    emit_hex("denom_inv", buf, 32, true);
+
+    close_obj();
+}
+
+/* ── Compressed point vectors ── */
+
+static void emit_compressed_points()
+{
+    open_obj("compressed_points");
+
+    uint8_t buf[32];
+
+    /* Ran: G, 2G, 7G, generator x-coordinate */
+    ran_jacobian G;
+    fp_copy(G.X, RAN_GX);
+    fp_copy(G.Y, RAN_GY);
+    fp_1(G.Z);
+
+    ran_tobytes(buf, &G);
+    emit_hex("ran_g", buf, 32);
+
+    ran_jacobian G2;
+    ran_dbl(&G2, &G);
+    ran_tobytes(buf, &G2);
+    emit_hex("ran_2g", buf, 32);
+
+    ran_jacobian G3, G4, G7;
+    ran_add(&G3, &G2, &G);
+    ran_dbl(&G4, &G2);
+    ran_add(&G7, &G4, &G3);
+    ran_tobytes(buf, &G7);
+    emit_hex("ran_7g", buf, 32);
+
+    fp_tobytes(buf, RAN_GX);
+    emit_hex("ran_gx", buf, 32);
+
+    /* Shaw: G, 2G, 7G, generator x-coordinate */
+    shaw_jacobian sG;
+    fq_copy(sG.X, SHAW_GX);
+    fq_copy(sG.Y, SHAW_GY);
+    fq_1(sG.Z);
+
+    shaw_tobytes(buf, &sG);
+    emit_hex("shaw_g", buf, 32);
+
+    shaw_jacobian sG2;
+    shaw_dbl(&sG2, &sG);
+    shaw_tobytes(buf, &sG2);
+    emit_hex("shaw_2g", buf, 32);
+
+    shaw_jacobian sG3, sG4, sG7;
+    shaw_add(&sG3, &sG2, &sG);
+    shaw_dbl(&sG4, &sG2);
+    shaw_add(&sG7, &sG4, &sG3);
+    shaw_tobytes(buf, &sG7);
+    emit_hex("shaw_7g", buf, 32);
+
+    fq_tobytes(buf, SHAW_GX);
+    emit_hex("shaw_gx", buf, 32, true);
+
+    close_obj();
+}
+
+/* ── SSWU map-to-curve vectors ── */
+
+static void emit_sswu_vectors(bool last = false)
+{
+    open_obj("sswu_vectors");
+
+    uint8_t buf[32];
+
+    /* Ran SSWU: u=1, u=2, u=42 */
+    ran_jacobian rp;
+    ran_map_to_curve(&rp, one_bytes);
+    ran_tobytes(buf, &rp);
+    emit_hex("ran_u1", buf, 32);
+
+    ran_map_to_curve(&rp, two_bytes);
+    ran_tobytes(buf, &rp);
+    emit_hex("ran_u2", buf, 32);
+
+    ran_map_to_curve(&rp, fortytwo_bytes);
+    ran_tobytes(buf, &rp);
+    emit_hex("ran_u42", buf, 32);
+
+    /* Shaw SSWU: u=1, u=2, u=42 */
+    shaw_jacobian sp;
+    shaw_map_to_curve(&sp, one_bytes);
+    shaw_tobytes(buf, &sp);
+    emit_hex("shaw_u1", buf, 32);
+
+    shaw_map_to_curve(&sp, two_bytes);
+    shaw_tobytes(buf, &sp);
+    emit_hex("shaw_u2", buf, 32);
+
+    shaw_map_to_curve(&sp, fortytwo_bytes);
+    shaw_tobytes(buf, &sp);
+    emit_hex("shaw_u42", buf, 32);
+
+    /* Ran SSWU intermediates for u=1: extract affine x, compute gx = x^3 - 3x + b, sqrt(gx) */
+    ran_map_to_curve(&rp, one_bytes);
+    ran_affine aff;
+    ran_to_affine(&aff, &rp);
+    fp_tobytes(buf, aff.x);
+    emit_hex("ran_x2_u1", buf, 32);
+
+    /* gx = x^3 - 3x + b */
+    fp_fe x_sq, x_cu, three_x, gx;
+    fp_sq(x_sq, aff.x);
+    fp_mul(x_cu, x_sq, aff.x);
+    fp_add(three_x, aff.x, aff.x);
+    fp_add(three_x, three_x, aff.x);
+    fp_sub(gx, x_cu, three_x);
+    fp_add(gx, gx, RAN_B);
+    fp_tobytes(buf, gx);
+    emit_hex("ran_gx2_u1", buf, 32);
+
+    fp_fe y;
+    fp_sqrt(y, gx);
+    fp_tobytes(buf, y);
+    emit_hex("ran_y_u1", buf, 32, true);
+
+    close_obj(last);
+}
+
 /* ── Main ── */
 
 int main()
@@ -2897,7 +3092,9 @@ int main()
         fq_tobytes(buf, SHAW_GX);
         emit_hex("shaw_gx", buf, 32);
         fq_tobytes(buf, SHAW_GY);
-        emit_hex("shaw_gy", buf, 32, true);
+        emit_hex("shaw_gy", buf, 32);
+        emit_int("ran_sswu_z", -2);
+        emit_int("shaw_sswu_z", -1, true);
     }
     close_obj();
 
@@ -3051,7 +3248,19 @@ int main()
         }
         close_arr(true);
     }
-    close_obj(true); /* high_degree_poly_mul */
+    close_obj(); /* high_degree_poly_mul */
+
+    fprintf(stderr, "  Fp field...\n");
+    emit_fp_field();
+
+    fprintf(stderr, "  Fq field...\n");
+    emit_fq_field();
+
+    fprintf(stderr, "  Compressed points...\n");
+    emit_compressed_points();
+
+    fprintf(stderr, "  SSWU vectors...\n");
+    emit_sswu_vectors(true);
 
     close_obj(true);
 

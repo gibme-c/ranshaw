@@ -95,8 +95,7 @@ static inline void ran_scalar_recode_signed5(int8_t digits[52], const unsigned c
  * @param scalar  256-bit scalar (32 bytes, little-endian)
  * @param table   Precomputed affine table of 16 points [1P..16P]
  */
-static inline void
-    ran_scalarmult_fixed(ran_jacobian *r, const unsigned char scalar[32], const ran_affine table[16])
+static inline void ran_scalarmult_fixed(ran_jacobian *r, const unsigned char scalar[32], const ran_affine table[16])
 {
     /* Recode scalar to signed 5-bit digits */
     int8_t digits[52];

@@ -113,56 +113,8 @@ static const unsigned char four_bytes[32] = {0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
                                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-/* F_p known-answer vectors */
-static const unsigned char fp_ab_bytes[32] = {0x8b, 0xf8, 0x99, 0xb6, 0x81, 0xc3, 0x9d, 0x32, 0x37, 0x91, 0x83,
-                                              0xab, 0x63, 0xdf, 0xe3, 0x39, 0x5a, 0xbb, 0x62, 0xcf, 0x01, 0xdb,
-                                              0x9b, 0x07, 0x40, 0x05, 0x0f, 0x2e, 0x75, 0x64, 0xbf, 0x5d};
-static const unsigned char fp_asq_bytes[32] = {0x34, 0xa5, 0xf2, 0xa2, 0x09, 0x5f, 0x47, 0xa6, 0x80, 0x23, 0x11,
-                                               0x6b, 0x38, 0x72, 0xb0, 0xef, 0x20, 0x65, 0x11, 0xb6, 0xcc, 0x2e,
-                                               0x41, 0xd2, 0x18, 0xfa, 0x92, 0x82, 0x13, 0xcd, 0xb1, 0x41};
-static const unsigned char fp_ainv_bytes[32] = {0x3f, 0x3a, 0x94, 0xed, 0xea, 0xf4, 0x00, 0xef, 0x56, 0x09, 0xc0,
-                                                0x94, 0xeb, 0x93, 0x22, 0xcb, 0x71, 0x87, 0x3d, 0x9b, 0x45, 0x9c,
-                                                0xde, 0xf4, 0x0a, 0x20, 0x13, 0xc1, 0xfc, 0x61, 0x66, 0x25};
-
-/* F_q known-answer vectors */
-static const unsigned char fq_ab_bytes[32] = {0xd9, 0x30, 0x72, 0x3d, 0x0f, 0xf1, 0xe6, 0xc3, 0xde, 0x25, 0x1e,
-                                              0xf4, 0x36, 0x67, 0x64, 0x7a, 0x5a, 0xbb, 0x62, 0xcf, 0x01, 0xdb,
-                                              0x9b, 0x07, 0x40, 0x05, 0x0f, 0x2e, 0x75, 0x64, 0xbf, 0x5d};
-static const unsigned char fq_asq_bytes[32] = {0x82, 0xdd, 0xca, 0x29, 0x97, 0x8c, 0x90, 0x37, 0x28, 0xb8, 0xab,
-                                               0xb3, 0x0b, 0xfa, 0x30, 0x30, 0x21, 0x65, 0x11, 0xb6, 0xcc, 0x2e,
-                                               0x41, 0xd2, 0x18, 0xfa, 0x92, 0x82, 0x13, 0xcd, 0xb1, 0x41};
-static const unsigned char fq_ainv_bytes[32] = {0xee, 0xe9, 0xdc, 0xce, 0x6d, 0x37, 0x57, 0xf1, 0xfd, 0x90, 0x58,
-                                                0xf5, 0xff, 0xff, 0x5f, 0xb3, 0x30, 0x3c, 0xb4, 0xb2, 0x81, 0x4a,
-                                                0xb8, 0x4f, 0xcf, 0xbe, 0x50, 0xe0, 0x6b, 0x8e, 0xe1, 0x60};
-static const unsigned char fq_sqrt4_bytes[32] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-/* Ran compressed point test vectors */
-static const unsigned char ran_g_compressed[32] = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-static const unsigned char ran_2g_compressed[32] = {0x26, 0x29, 0x42, 0x40, 0x80, 0x90, 0xb3, 0xc5, 0x07, 0xb8, 0xac,
-                                                       0x94, 0xd4, 0x6f, 0xc4, 0x95, 0xfc, 0x12, 0x9f, 0xb4, 0xd1, 0x65,
-                                                       0x37, 0x24, 0x11, 0xd5, 0xe5, 0xea, 0x00, 0x84, 0x02, 0xf2};
-
-static const unsigned char ran_7g_compressed[32] = {0x03, 0xdf, 0x58, 0xab, 0x3f, 0x90, 0x99, 0xc3, 0x4d, 0x76, 0x64,
-                                                       0x2b, 0x4c, 0x99, 0xe5, 0x82, 0xe3, 0x8c, 0xf4, 0x7e, 0x1b, 0xee,
-                                                       0x44, 0x4c, 0x48, 0x17, 0xa4, 0x81, 0xba, 0x49, 0x98, 0x26};
-
-/* Shaw compressed point test vectors */
-static const unsigned char shaw_g_compressed[32] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-static const unsigned char shaw_2g_compressed[32] = {0x9d, 0xc7, 0x27, 0x79, 0x72, 0xd2, 0xb6, 0x6e, 0x58, 0x6b, 0x65,
-                                                       0xb7, 0x2c, 0x78, 0x7f, 0xbf, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                                       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-static const unsigned char shaw_7g_compressed[32] = {0x99, 0x30, 0x21, 0x4d, 0xf2, 0x35, 0x94, 0x1d, 0xba, 0x78, 0xb6,
-                                                       0x1c, 0xeb, 0xf3, 0x81, 0x2c, 0x69, 0xc0, 0x43, 0x18, 0x28, 0xf9,
-                                                       0x08, 0x9e, 0x01, 0x69, 0x5d, 0x8a, 0xfd, 0x58, 0xbe, 0x2f};
+/* All computed test vectors loaded from generated header */
+namespace tv = ranshaw_test_vectors;
 
 static void test_fp()
 {
@@ -192,19 +144,19 @@ static void test_fp()
 
     fp_mul(c, a, b);
     fp_tobytes(buf, c);
-    check_bytes("a * b", fp_ab_bytes, buf, 32);
+    check_bytes("a * b", tv::fp_field::mul_ab, buf, 32);
 
     fp_mul(d, b, a);
     fp_tobytes(buf, d);
-    check_bytes("b * a == a * b", fp_ab_bytes, buf, 32);
+    check_bytes("b * a == a * b", tv::fp_field::mul_ab, buf, 32);
 
     fp_sq(c, a);
     fp_tobytes(buf, c);
-    check_bytes("a^2", fp_asq_bytes, buf, 32);
+    check_bytes("a^2", tv::fp_field::sq_a, buf, 32);
 
     fp_mul(d, a, a);
     fp_tobytes(buf, d);
-    check_bytes("sq(a) == mul(a,a)", fp_asq_bytes, buf, 32);
+    check_bytes("sq(a) == mul(a,a)", tv::fp_field::sq_a, buf, 32);
 
     fp_mul(c, a, one);
     fp_tobytes(buf, c);
@@ -213,7 +165,7 @@ static void test_fp()
     fp_fe inv_a;
     fp_invert(inv_a, a);
     fp_tobytes(buf, inv_a);
-    check_bytes("inv(a)", fp_ainv_bytes, buf, 32);
+    check_bytes("inv(a)", tv::fp_field::inv_a, buf, 32);
 
     fp_mul(c, inv_a, a);
     fp_tobytes(buf, c);
@@ -257,19 +209,19 @@ static void test_fq()
 
     fq_mul(c, a, b);
     fq_tobytes(buf, c);
-    check_bytes("a * b", fq_ab_bytes, buf, 32);
+    check_bytes("a * b", tv::fq_field::mul_ab, buf, 32);
 
     fq_mul(d, b, a);
     fq_tobytes(buf, d);
-    check_bytes("b * a == a * b", fq_ab_bytes, buf, 32);
+    check_bytes("b * a == a * b", tv::fq_field::mul_ab, buf, 32);
 
     fq_sq(c, a);
     fq_tobytes(buf, c);
-    check_bytes("a^2", fq_asq_bytes, buf, 32);
+    check_bytes("a^2", tv::fq_field::sq_a, buf, 32);
 
     fq_mul(d, a, a);
     fq_tobytes(buf, d);
-    check_bytes("sq(a) == mul(a,a)", fq_asq_bytes, buf, 32);
+    check_bytes("sq(a) == mul(a,a)", tv::fq_field::sq_a, buf, 32);
 
     fq_mul(c, a, one);
     fq_tobytes(buf, c);
@@ -278,7 +230,7 @@ static void test_fq()
     fq_fe inv_a;
     fq_invert(inv_a, a);
     fq_tobytes(buf, inv_a);
-    check_bytes("inv(a)", fq_ainv_bytes, buf, 32);
+    check_bytes("inv(a)", tv::fq_field::inv_a, buf, 32);
 
     fq_mul(c, inv_a, a);
     fq_tobytes(buf, c);
@@ -286,21 +238,15 @@ static void test_fq()
 
     /* Test invert with fully-populated input (exercises all limbs) */
     {
-        static const unsigned char denom_bytes[32] = {0xcf, 0x58, 0x73, 0x16, 0xeb, 0x6b, 0x39, 0x24, 0x6b, 0x9b, 0x4c,
-                                                      0xa1, 0x6d, 0xdc, 0x6a, 0x24, 0x98, 0xe9, 0x0f, 0xf1, 0x3a, 0x61,
-                                                      0xca, 0x45, 0x67, 0xaf, 0xb1, 0x1b, 0xec, 0x4a, 0x63, 0x49};
         fq_fe denom_fe, inv_denom, check_one;
-        fq_frombytes(denom_fe, denom_bytes);
+        fq_frombytes(denom_fe, tv::fq_field::denom);
         fq_invert(inv_denom, denom_fe);
         fq_mul(check_one, inv_denom, denom_fe);
         fq_tobytes(buf, check_one);
         check_bytes("inv(full_denom) * full_denom == 1", one_bytes, buf, 32);
         /* Cross-check: known inverse should also give 1 when multiplied by denom */
-        static const unsigned char x64_inv_bytes[32] = {
-            0xd5, 0x94, 0x1e, 0xd6, 0x78, 0xd1, 0x68, 0xfa, 0x41, 0x79, 0x2a, 0x59, 0xfc, 0xe8, 0xee, 0x82,
-            0xad, 0x67, 0xe3, 0x4e, 0xbf, 0x7f, 0xbd, 0xd1, 0x9f, 0xce, 0xaa, 0xfa, 0x41, 0x36, 0xf4, 0x4b};
         fq_fe x64_inv_fe;
-        fq_frombytes(x64_inv_fe, x64_inv_bytes);
+        fq_frombytes(x64_inv_fe, tv::fq_field::denom_inv);
         fq_fe cross_check;
         fq_mul(cross_check, x64_inv_fe, denom_fe);
         fq_tobytes(buf, cross_check);
@@ -324,7 +270,7 @@ static void test_fq()
             fq_tobytes(gamma_25_bytes, gamma_25_fe);
 
             /* Construct gamma from GAMMA_51 via byte packing */
-            uint64_t g51[5] = {0x12D8D86D83861ULL, 0x269135294F229ULL, 0x102021FULL, 0, 0};
+            uint64_t g51[5] = {0x7B9BA138F07A1ULL, 0x638D19E0B11D2ULL, 0x2D13853ULL, 0, 0};
             unsigned char gamma_51_bytes[32];
             /* Pack 51-bit limbs to bytes */
             uint64_t w0 = g51[0] | (g51[1] << 51);
@@ -370,7 +316,7 @@ static void test_fq()
     fq_fe sqrt4;
     fq_sqrt(sqrt4, four);
     fq_tobytes(buf, sqrt4);
-    check_bytes("sqrt(4) == 2", fq_sqrt4_bytes, buf, 32);
+    check_bytes("sqrt(4) == 2", tv::fq_field::sqrt4, buf, 32);
 
     fq_sq(c, sqrt4);
     fq_tobytes(buf, c);
@@ -441,13 +387,13 @@ static void test_ran_points()
     fp_1(G.Z);
 
     ran_tobytes(buf, &G);
-    check_bytes("tobytes(G)", ran_g_compressed, buf, 32);
+    check_bytes("tobytes(G)", tv::compressed_points::ran_g, buf, 32);
 
     ran_jacobian G2;
-    int rc = ran_frombytes(&G2, ran_g_compressed);
+    int rc = ran_frombytes(&G2, tv::compressed_points::ran_g);
     check_int("frombytes(G) returns 0", 0, rc);
     ran_tobytes(buf, &G2);
-    check_bytes("frombytes(tobytes(G)) round-trip", ran_g_compressed, buf, 32);
+    check_bytes("frombytes(tobytes(G)) round-trip", tv::compressed_points::ran_g, buf, 32);
 
     ran_jacobian id;
     ran_identity(&id);
@@ -459,7 +405,7 @@ static void test_ran_points()
     ran_jacobian dbl_G;
     ran_dbl(&dbl_G, &G);
     ran_tobytes(buf, &dbl_G);
-    check_bytes("2G = dbl(G)", ran_2g_compressed, buf, 32);
+    check_bytes("2G = dbl(G)", tv::compressed_points::ran_2g, buf, 32);
 
     /* 3G = 2G + G (add doesn't handle P==P, so skip G+G test) */
     ran_jacobian three_G;
@@ -471,13 +417,13 @@ static void test_ran_points()
     ran_jacobian seven_G;
     ran_add(&seven_G, &four_G, &three_G);
     ran_tobytes(buf, &seven_G);
-    check_bytes("7G = 4G + 3G", ran_7g_compressed, buf, 32);
+    check_bytes("7G = 4G + 3G", tv::compressed_points::ran_7g, buf, 32);
 
     ran_jacobian decoded_2g;
-    rc = ran_frombytes(&decoded_2g, ran_2g_compressed);
+    rc = ran_frombytes(&decoded_2g, tv::compressed_points::ran_2g);
     check_int("frombytes(2G) returns 0", 0, rc);
     ran_tobytes(buf, &decoded_2g);
-    check_bytes("2G round-trip", ran_2g_compressed, buf, 32);
+    check_bytes("2G round-trip", tv::compressed_points::ran_2g, buf, 32);
 
     unsigned char invalid_bytes[32] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                                        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -513,13 +459,13 @@ static void test_shaw_points()
     fq_1(G.Z);
 
     shaw_tobytes(buf, &G);
-    check_bytes("tobytes(G)", shaw_g_compressed, buf, 32);
+    check_bytes("tobytes(G)", tv::compressed_points::shaw_g, buf, 32);
 
     shaw_jacobian G2;
-    int rc = shaw_frombytes(&G2, shaw_g_compressed);
+    int rc = shaw_frombytes(&G2, tv::compressed_points::shaw_g);
     check_int("frombytes(G) returns 0", 0, rc);
     shaw_tobytes(buf, &G2);
-    check_bytes("frombytes(tobytes(G)) round-trip", shaw_g_compressed, buf, 32);
+    check_bytes("frombytes(tobytes(G)) round-trip", tv::compressed_points::shaw_g, buf, 32);
 
     shaw_jacobian id;
     shaw_identity(&id);
@@ -530,7 +476,7 @@ static void test_shaw_points()
     shaw_jacobian dbl_G;
     shaw_dbl(&dbl_G, &G);
     shaw_tobytes(buf, &dbl_G);
-    check_bytes("2G = dbl(G)", shaw_2g_compressed, buf, 32);
+    check_bytes("2G = dbl(G)", tv::compressed_points::shaw_2g, buf, 32);
 
     /* 3G, 4G, 7G (add doesn't handle P==P, so skip G+G test) */
     shaw_jacobian three_G;
@@ -540,13 +486,13 @@ static void test_shaw_points()
     shaw_jacobian seven_G;
     shaw_add(&seven_G, &four_G, &three_G);
     shaw_tobytes(buf, &seven_G);
-    check_bytes("7G = 4G + 3G", shaw_7g_compressed, buf, 32);
+    check_bytes("7G = 4G + 3G", tv::compressed_points::shaw_7g, buf, 32);
 
     shaw_jacobian decoded_2g;
-    rc = shaw_frombytes(&decoded_2g, shaw_2g_compressed);
+    rc = shaw_frombytes(&decoded_2g, tv::compressed_points::shaw_2g);
     check_int("frombytes(2G) returns 0", 0, rc);
     shaw_tobytes(buf, &decoded_2g);
-    check_bytes("2G round-trip", shaw_2g_compressed, buf, 32);
+    check_bytes("2G round-trip", tv::compressed_points::shaw_2g, buf, 32);
 
     unsigned char invalid_bytes[32] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                                        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -579,7 +525,7 @@ static void test_ran_scalarmult()
     ran_jacobian result;
     ran_scalarmult(&result, one_bytes, &G);
     ran_tobytes(buf, &result);
-    check_bytes("1*G == G", ran_g_compressed, buf, 32);
+    check_bytes("1*G == G", tv::compressed_points::ran_g, buf, 32);
 
     ran_scalarmult(&result, zero_bytes, &G);
     check_nonzero("0*G == identity", ran_is_identity(&result));
@@ -587,23 +533,23 @@ static void test_ran_scalarmult()
     unsigned char two_scalar[32] = {0x02};
     ran_scalarmult(&result, two_scalar, &G);
     ran_tobytes(buf, &result);
-    check_bytes("2*G == 2G", ran_2g_compressed, buf, 32);
+    check_bytes("2*G == 2G", tv::compressed_points::ran_2g, buf, 32);
 
     unsigned char seven_scalar[32] = {0x07};
     ran_scalarmult(&result, seven_scalar, &G);
     ran_tobytes(buf, &result);
-    check_bytes("7*G", ran_7g_compressed, buf, 32);
+    check_bytes("7*G", tv::compressed_points::ran_7g, buf, 32);
 
     ran_scalarmult(&result, RAN_ORDER, &G);
     check_nonzero("order*G == identity", ran_is_identity(&result));
 
     ran_scalarmult_vartime(&result, one_bytes, &G);
     ran_tobytes(buf, &result);
-    check_bytes("vartime: 1*G == G", ran_g_compressed, buf, 32);
+    check_bytes("vartime: 1*G == G", tv::compressed_points::ran_g, buf, 32);
 
     ran_scalarmult_vartime(&result, seven_scalar, &G);
     ran_tobytes(buf, &result);
-    check_bytes("vartime: 7*G", ran_7g_compressed, buf, 32);
+    check_bytes("vartime: 7*G", tv::compressed_points::ran_7g, buf, 32);
 
     ran_scalarmult_vartime(&result, RAN_ORDER, &G);
     check_nonzero("vartime: order*G == identity", ran_is_identity(&result));
@@ -625,7 +571,7 @@ static void test_ran_scalarmult()
     ran_scalarmult(&bG, scalar_5, &G);
     ran_add(&sum_pt, &aG, &bG);
     ran_tobytes(buf, &sum_pt);
-    check_bytes("(2+5)*G == 2*G + 5*G", ran_7g_compressed, buf, 32);
+    check_bytes("(2+5)*G == 2*G + 5*G", tv::compressed_points::ran_7g, buf, 32);
 }
 
 static void test_shaw_scalarmult()
@@ -641,7 +587,7 @@ static void test_shaw_scalarmult()
     shaw_jacobian result;
     shaw_scalarmult(&result, one_bytes, &G);
     shaw_tobytes(buf, &result);
-    check_bytes("1*G == G", shaw_g_compressed, buf, 32);
+    check_bytes("1*G == G", tv::compressed_points::shaw_g, buf, 32);
 
     shaw_scalarmult(&result, zero_bytes, &G);
     check_nonzero("0*G == identity", shaw_is_identity(&result));
@@ -649,23 +595,23 @@ static void test_shaw_scalarmult()
     unsigned char two_scalar[32] = {0x02};
     shaw_scalarmult(&result, two_scalar, &G);
     shaw_tobytes(buf, &result);
-    check_bytes("2*G == 2G", shaw_2g_compressed, buf, 32);
+    check_bytes("2*G == 2G", tv::compressed_points::shaw_2g, buf, 32);
 
     unsigned char seven_scalar[32] = {0x07};
     shaw_scalarmult(&result, seven_scalar, &G);
     shaw_tobytes(buf, &result);
-    check_bytes("7*G", shaw_7g_compressed, buf, 32);
+    check_bytes("7*G", tv::compressed_points::shaw_7g, buf, 32);
 
     shaw_scalarmult(&result, SHAW_ORDER, &G);
     check_nonzero("order*G == identity", shaw_is_identity(&result));
 
     shaw_scalarmult_vartime(&result, one_bytes, &G);
     shaw_tobytes(buf, &result);
-    check_bytes("vartime: 1*G == G", shaw_g_compressed, buf, 32);
+    check_bytes("vartime: 1*G == G", tv::compressed_points::shaw_g, buf, 32);
 
     shaw_scalarmult_vartime(&result, seven_scalar, &G);
     shaw_tobytes(buf, &result);
-    check_bytes("vartime: 7*G", shaw_7g_compressed, buf, 32);
+    check_bytes("vartime: 7*G", tv::compressed_points::shaw_7g, buf, 32);
 
     shaw_scalarmult_vartime(&result, SHAW_ORDER, &G);
     check_nonzero("vartime: order*G == identity", shaw_is_identity(&result));
@@ -687,7 +633,7 @@ static void test_shaw_scalarmult()
     shaw_scalarmult(&bG, scalar_5, &G);
     shaw_add(&sum_pt, &aG, &bG);
     shaw_tobytes(buf, &sum_pt);
-    check_bytes("(2+5)*G == 2*G + 5*G", shaw_7g_compressed, buf, 32);
+    check_bytes("(2+5)*G == 2*G + 5*G", tv::compressed_points::shaw_7g, buf, 32);
 }
 
 static void test_wei25519()
@@ -729,13 +675,13 @@ static void test_ran_msm()
     ran_jacobian result;
     ran_msm_vartime(&result, one_bytes, &G, 1);
     ran_tobytes(buf, &result);
-    check_bytes("msm([1], [G]) == G", ran_g_compressed, buf, 32);
+    check_bytes("msm([1], [G]) == G", tv::compressed_points::ran_g, buf, 32);
 
     /* msm([7], [G]) == 7*G */
     unsigned char seven_scalar[32] = {0x07};
     ran_msm_vartime(&result, seven_scalar, &G, 1);
     ran_tobytes(buf, &result);
-    check_bytes("msm([7], [G]) == 7G", ran_7g_compressed, buf, 32);
+    check_bytes("msm([7], [G]) == 7G", tv::compressed_points::ran_7g, buf, 32);
 
     /* msm([0], [G]) == identity */
     ran_msm_vartime(&result, zero_bytes, &G, 1);
@@ -758,7 +704,7 @@ static void test_ran_msm()
     ran_copy(&points_2[1], &G);
     ran_msm_vartime(&result, scalars_2_5, points_2, 2);
     ran_tobytes(buf, &result);
-    check_bytes("msm([2,5], [G,G]) == 7G", ran_7g_compressed, buf, 32);
+    check_bytes("msm([2,5], [G,G]) == 7G", tv::compressed_points::ran_7g, buf, 32);
 
     /* msm([a], [P]) == scalarmult_vartime(a, P) */
     unsigned char scalar_a[32] = {0xef, 0xcd, 0xab, 0x90, 0x78, 0x56, 0x34, 0x12, 0xbe, 0xba, 0xfe,
@@ -857,13 +803,13 @@ static void test_shaw_msm()
     shaw_jacobian result;
     shaw_msm_vartime(&result, one_bytes, &G, 1);
     shaw_tobytes(buf, &result);
-    check_bytes("msm([1], [G]) == G", shaw_g_compressed, buf, 32);
+    check_bytes("msm([1], [G]) == G", tv::compressed_points::shaw_g, buf, 32);
 
     /* msm([7], [G]) == 7*G */
     unsigned char seven_scalar[32] = {0x07};
     shaw_msm_vartime(&result, seven_scalar, &G, 1);
     shaw_tobytes(buf, &result);
-    check_bytes("msm([7], [G]) == 7G", shaw_7g_compressed, buf, 32);
+    check_bytes("msm([7], [G]) == 7G", tv::compressed_points::shaw_7g, buf, 32);
 
     /* msm([0], [G]) == identity */
     shaw_msm_vartime(&result, zero_bytes, &G, 1);
@@ -886,7 +832,7 @@ static void test_shaw_msm()
     shaw_copy(&points_2[1], &G);
     shaw_msm_vartime(&result, scalars_2_5, points_2, 2);
     shaw_tobytes(buf, &result);
-    check_bytes("msm([2,5], [G,G]) == 7G", shaw_7g_compressed, buf, 32);
+    check_bytes("msm([2,5], [G,G]) == 7G", tv::compressed_points::shaw_7g, buf, 32);
 
     /* msm([a], [P]) == scalarmult_vartime(a, P) */
     unsigned char scalar_a[32] = {0xef, 0xcd, 0xab, 0x90, 0x78, 0x56, 0x34, 0x12, 0xbe, 0xba, 0xfe,
@@ -974,27 +920,7 @@ static void test_shaw_msm()
     }
 }
 
-/* Ran SSWU test vectors (Z=7) */
-static const unsigned char ran_sswu_u1_result[32] = {
-    0xc1, 0x2b, 0xdf, 0x94, 0x58, 0xf9, 0x6c, 0x32, 0x1e, 0xe6, 0x8e, 0x9a, 0x25, 0xa8, 0x16, 0x2a,
-    0xac, 0x44, 0xfd, 0xb4, 0x9e, 0x0d, 0xa1, 0xc4, 0xb6, 0xcb, 0x2c, 0x04, 0x29, 0xd9, 0xe8, 0x92};
-static const unsigned char ran_sswu_u2_result[32] = {
-    0x2b, 0xa6, 0x56, 0xa7, 0x92, 0xc8, 0x4a, 0x9c, 0xfc, 0xf6, 0xe2, 0xef, 0x8f, 0x17, 0x45, 0x5b,
-    0x02, 0x31, 0x05, 0xc2, 0x18, 0x51, 0xe5, 0xee, 0x95, 0xda, 0x5a, 0x9e, 0x35, 0xcd, 0x68, 0x7e};
-static const unsigned char ran_sswu_u42_result[32] = {
-    0x02, 0xa5, 0xe6, 0x21, 0x27, 0x7d, 0xf1, 0x0c, 0xb8, 0xab, 0xf7, 0xaa, 0xf2, 0x30, 0x8c, 0x83,
-    0x51, 0xae, 0xb8, 0xf8, 0x9f, 0x87, 0x0f, 0x38, 0xe4, 0x4b, 0xf6, 0x26, 0x32, 0xda, 0xfa, 0x44};
-
-/* Shaw SSWU test vectors (Z=-4) */
-static const unsigned char shaw_sswu_u1_result[32] = {
-    0x86, 0x47, 0x94, 0xcc, 0xb4, 0x7a, 0x10, 0x0d, 0x9c, 0x06, 0x24, 0x65, 0xde, 0x49, 0x0c, 0x58,
-    0x4f, 0xd5, 0xaa, 0x7c, 0xbb, 0x62, 0xa6, 0x2b, 0x93, 0x1b, 0xb9, 0xa0, 0x8e, 0x37, 0x1e, 0xde};
-static const unsigned char shaw_sswu_u2_result[32] = {
-    0x89, 0x0c, 0xf9, 0x19, 0x1a, 0x8d, 0x52, 0x90, 0xc3, 0xd9, 0x8d, 0xba, 0x4c, 0xf8, 0x18, 0x1f,
-    0x0b, 0x8d, 0xef, 0x20, 0x78, 0xd4, 0x2d, 0x0c, 0x49, 0x23, 0xba, 0x5f, 0xed, 0xd1, 0xfd, 0x5a};
-static const unsigned char shaw_sswu_u42_result[32] = {
-    0xd1, 0x74, 0x24, 0x2b, 0x58, 0x40, 0xdf, 0xd2, 0x85, 0x39, 0x24, 0x38, 0x3d, 0x6b, 0x0f, 0x62,
-    0xb0, 0x93, 0xb5, 0x9b, 0x6d, 0xdc, 0x89, 0x71, 0x36, 0x19, 0x00, 0xcf, 0x6c, 0xb7, 0xe5, 0x06};
+/* SSWU test vectors loaded from generated header */
 
 static void test_fp_sqrt_sswu()
 {
@@ -1002,12 +928,8 @@ static void test_fp_sqrt_sswu()
     unsigned char buf[32];
 
     /* gx2 for SSWU u=1, known to be a QR */
-    static const unsigned char gx2_bytes[32] = {0x4a, 0x9d, 0xd9, 0xd3, 0x95, 0x50, 0x3c, 0x31, 0x36, 0x8c, 0x6b,
-                                                0xc5, 0x81, 0xc6, 0xa4, 0xc0, 0xc9, 0xca, 0x97, 0xde, 0x52, 0x20,
-                                                0x8d, 0x23, 0xb2, 0x69, 0xc5, 0x73, 0x68, 0x0d, 0xcb, 0x16};
-    static const unsigned char y_expected[32] = {0x98, 0xff, 0x11, 0x0f, 0x2a, 0xbf, 0xc4, 0x3f, 0xdf, 0xac, 0x96,
-                                                 0x12, 0xf6, 0xde, 0x68, 0x85, 0x41, 0xf8, 0xf4, 0xbb, 0xea, 0xe4,
-                                                 0x73, 0x1c, 0x10, 0x71, 0xce, 0xc2, 0xd0, 0xef, 0xc1, 0x47};
+    const unsigned char *gx2_bytes = tv::sswu_vectors::ran_gx2_u1;
+    const unsigned char *y_expected = tv::sswu_vectors::ran_y_u1;
 
     fp_fe gx2_fe, y_fe;
     fp_frombytes(gx2_fe, gx2_bytes);
@@ -1043,9 +965,7 @@ static void test_fp_sqrt_sswu()
     }
 
     /* Now test: compute gx from x2 directly and check sqrt */
-    static const unsigned char x2_bytes[32] = {0xc1, 0x2b, 0xdf, 0x94, 0x58, 0xf9, 0x6c, 0x32, 0x1e, 0xe6, 0x8e,
-                                               0x9a, 0x25, 0xa8, 0x16, 0x2a, 0xac, 0x44, 0xfd, 0xb4, 0x9e, 0x0d,
-                                               0xa1, 0xc4, 0xb6, 0xcb, 0x2c, 0x04, 0x29, 0xd9, 0xe8, 0x12};
+    const unsigned char *x2_bytes = tv::sswu_vectors::ran_x2_u1;
     fp_fe x2_fe, x2_sq, x2_cu, gx_computed;
     fp_frombytes(x2_fe, x2_bytes);
     fp_sq(x2_sq, x2_fe);
@@ -1070,23 +990,23 @@ static void test_ran_sswu()
     ran_jacobian result;
     ran_map_to_curve(&result, one_bytes);
     ran_tobytes(buf, &result);
-    check_bytes("sswu(1)", ran_sswu_u1_result, buf, 32);
+    check_bytes("sswu(1)", tv::sswu_vectors::ran_u1, buf, 32);
 
     unsigned char two_bytes[32] = {0x02};
     ran_map_to_curve(&result, two_bytes);
     ran_tobytes(buf, &result);
-    check_bytes("sswu(2)", ran_sswu_u2_result, buf, 32);
+    check_bytes("sswu(2)", tv::sswu_vectors::ran_u2, buf, 32);
 
     unsigned char u42_bytes[32] = {0x2a};
     ran_map_to_curve(&result, u42_bytes);
     ran_tobytes(buf, &result);
-    check_bytes("sswu(42)", ran_sswu_u42_result, buf, 32);
+    check_bytes("sswu(42)", tv::sswu_vectors::ran_u42, buf, 32);
 
     /* Deterministic: same input → same output */
     ran_jacobian result2;
     ran_map_to_curve(&result2, one_bytes);
     ran_tobytes(buf, &result2);
-    check_bytes("sswu(1) deterministic", ran_sswu_u1_result, buf, 32);
+    check_bytes("sswu(1) deterministic", tv::sswu_vectors::ran_u1, buf, 32);
 
     /* Output is on curve */
     ran_affine aff;
@@ -1120,23 +1040,23 @@ static void test_shaw_sswu()
     shaw_jacobian result;
     shaw_map_to_curve(&result, one_bytes);
     shaw_tobytes(buf, &result);
-    check_bytes("sswu(1)", shaw_sswu_u1_result, buf, 32);
+    check_bytes("sswu(1)", tv::sswu_vectors::shaw_u1, buf, 32);
 
     unsigned char two_bytes[32] = {0x02};
     shaw_map_to_curve(&result, two_bytes);
     shaw_tobytes(buf, &result);
-    check_bytes("sswu(2)", shaw_sswu_u2_result, buf, 32);
+    check_bytes("sswu(2)", tv::sswu_vectors::shaw_u2, buf, 32);
 
     unsigned char u42_bytes[32] = {0x2a};
     shaw_map_to_curve(&result, u42_bytes);
     shaw_tobytes(buf, &result);
-    check_bytes("sswu(42)", shaw_sswu_u42_result, buf, 32);
+    check_bytes("sswu(42)", tv::sswu_vectors::shaw_u42, buf, 32);
 
     /* Deterministic: same input → same output */
     shaw_jacobian result2;
     shaw_map_to_curve(&result2, one_bytes);
     shaw_tobytes(buf, &result2);
-    check_bytes("sswu(1) deterministic", shaw_sswu_u1_result, buf, 32);
+    check_bytes("sswu(1) deterministic", tv::sswu_vectors::shaw_u1, buf, 32);
 
     /* Output is on curve */
     shaw_affine aff;
@@ -2415,7 +2335,7 @@ static void test_msm_extended()
         ran_jacobian result;
         ran_msm_vartime(&result, scalars, points, 2);
         ran_tobytes(buf, &result);
-        check_bytes("ran msm([1,1],[id,G]) == G", ran_g_compressed, buf, 32);
+        check_bytes("ran msm([1,1],[id,G]) == G", tv::compressed_points::ran_g, buf, 32);
     }
 
     /* Ran: MSM all identities */
@@ -2506,7 +2426,7 @@ static void test_msm_extended()
         shaw_jacobian result;
         shaw_msm_vartime(&result, scalars, points, 2);
         shaw_tobytes(buf, &result);
-        check_bytes("shaw msm([1,1],[id,G]) == G", shaw_g_compressed, buf, 32);
+        check_bytes("shaw msm([1,1],[id,G]) == G", tv::compressed_points::shaw_g, buf, 32);
     }
 
     /* Shaw: MSM all identities */
@@ -3697,9 +3617,7 @@ static void test_point_to_scalar()
         unsigned char xbytes[32];
         ran_point_to_bytes(xbytes, &G);
 
-        /* G.x == 3, so bytes should be {3, 0, ..., 0} */
-        unsigned char expected_gx[32] = {0x03};
-        check_bytes("ran G.x == 3", expected_gx, xbytes, 32);
+        check_bytes("ran G.x", tv::compressed_points::ran_gx, xbytes, 32);
     }
 
     /* Shaw: extract x-coordinate of G as bytes */
@@ -3712,9 +3630,7 @@ static void test_point_to_scalar()
         unsigned char xbytes[32];
         shaw_point_to_bytes(xbytes, &G);
 
-        /* G.x == 1, so bytes should be {1, 0, ..., 0} */
-        unsigned char expected_gx[32] = {0x01};
-        check_bytes("shaw G.x == 1", expected_gx, xbytes, 32);
+        check_bytes("shaw G.x", tv::compressed_points::shaw_gx, xbytes, 32);
     }
 
     /* Round-trip: 7*G, extract x, verify tobytes(affine.x) matches */
@@ -5058,17 +4974,17 @@ static void test_dispatch()
 
         unsigned char result_bytes[32];
         ran_tobytes(result_bytes, &result);
-        check_bytes("ran dispatch scalarmult 7*G", result_bytes, ran_7g_compressed, 32);
+        check_bytes("ran dispatch scalarmult 7*G", result_bytes, tv::compressed_points::ran_7g, 32);
 
         // vartime
         ran_scalarmult_vartime(&result, scalar_7, &G);
         ran_tobytes(result_bytes, &result);
-        check_bytes("ran dispatch scalarmult_vt 7*G", result_bytes, ran_7g_compressed, 32);
+        check_bytes("ran dispatch scalarmult_vt 7*G", result_bytes, tv::compressed_points::ran_7g, 32);
 
         // MSM: 7*G via MSM(scalar=7, point=G, n=1)
         ran_msm_vartime(&result, scalar_7, &G, 1);
         ran_tobytes(result_bytes, &result);
-        check_bytes("ran dispatch msm 7*G", result_bytes, ran_7g_compressed, 32);
+        check_bytes("ran dispatch msm 7*G", result_bytes, tv::compressed_points::ran_7g, 32);
     }
 
     // Shaw scalarmult via dispatch
@@ -5084,15 +5000,15 @@ static void test_dispatch()
 
         unsigned char result_bytes[32];
         shaw_tobytes(result_bytes, &result);
-        check_bytes("shaw dispatch scalarmult 7*G", result_bytes, shaw_7g_compressed, 32);
+        check_bytes("shaw dispatch scalarmult 7*G", result_bytes, tv::compressed_points::shaw_7g, 32);
 
         shaw_scalarmult_vartime(&result, scalar_7, &G);
         shaw_tobytes(result_bytes, &result);
-        check_bytes("shaw dispatch scalarmult_vt 7*G", result_bytes, shaw_7g_compressed, 32);
+        check_bytes("shaw dispatch scalarmult_vt 7*G", result_bytes, tv::compressed_points::shaw_7g, 32);
 
         shaw_msm_vartime(&result, scalar_7, &G, 1);
         shaw_tobytes(result_bytes, &result);
-        check_bytes("shaw dispatch msm 7*G", result_bytes, shaw_7g_compressed, 32);
+        check_bytes("shaw dispatch msm 7*G", result_bytes, tv::compressed_points::shaw_7g, 32);
     }
 
     // Test double init is safe (idempotent via call_once)
@@ -5329,9 +5245,7 @@ static void test_cpp_api()
         auto G = RanPoint::generator();
         auto xb = G.x_coordinate_bytes();
         /* x-coordinate of Ran generator is 3 */
-        unsigned char expected_x[32] = {};
-        expected_x[0] = 0x03;
-        check_bytes("api: ran G x-coord == 3", expected_x, xb.data(), 32);
+        check_bytes("api: ran G x-coord", tv::compressed_points::ran_gx, xb.data(), 32);
     }
 
     /* ---- Polynomial ---- */
@@ -5848,8 +5762,7 @@ static void test_vector_validation()
     {
         auto &v = tv::ran_scalar::reduce_wide_vectors[i];
         auto r = RanScalar::reduce_wide(v.input);
-        check_bytes(
-            (std::string("tv: ran scalar reduce_wide ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
+        check_bytes((std::string("tv: ran scalar reduce_wide ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
     }
     for (size_t i = 0; i < tv::ran_scalar::muladd_count; i++)
     {
@@ -5944,8 +5857,7 @@ static void test_vector_validation()
     {
         auto &v = tv::shaw_scalar::reduce_wide_vectors[i];
         auto r = ShawScalar::reduce_wide(v.input);
-        check_bytes(
-            (std::string("tv: shaw scalar reduce_wide ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
+        check_bytes((std::string("tv: shaw scalar reduce_wide ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
     }
     for (size_t i = 0; i < tv::shaw_scalar::muladd_count; i++)
     {
@@ -6145,15 +6057,13 @@ static void test_vector_validation()
     {
         auto &v = tv::ran_point::map_to_curve_single_vectors[i];
         auto r = RanPoint::map_to_curve(v.u);
-        check_bytes(
-            (std::string("tv: ran point map_to_curve ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
+        check_bytes((std::string("tv: ran point map_to_curve ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
     }
     for (size_t i = 0; i < tv::ran_point::map_to_curve_double_count; i++)
     {
         auto &v = tv::ran_point::map_to_curve_double_vectors[i];
         auto r = RanPoint::map_to_curve(v.u0, v.u1);
-        check_bytes(
-            (std::string("tv: ran point map_to_curve2 ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
+        check_bytes((std::string("tv: ran point map_to_curve2 ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
     }
     for (size_t i = 0; i < tv::ran_point::x_coordinate_count; i++)
     {
@@ -6345,8 +6255,7 @@ static void test_vector_validation()
     {
         auto &v = tv::shaw_point::map_to_curve_single_vectors[i];
         auto r = ShawPoint::map_to_curve(v.u);
-        check_bytes(
-            (std::string("tv: shaw point map_to_curve ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
+        check_bytes((std::string("tv: shaw point map_to_curve ") + v.label).c_str(), v.result, r.to_bytes().data(), 32);
     }
     for (size_t i = 0; i < tv::shaw_point::map_to_curve_double_count; i++)
     {
@@ -7608,9 +7517,7 @@ static void test_vector_validation_c_primitives()
         fq_fe a;
         ran_scalar_from_bytes(a, v.a);
         check_int(
-            (std::string("tv(C): ran scalar is_zero ") + v.label).c_str(),
-            v.result ? 1 : 0,
-            ran_scalar_is_zero(a));
+            (std::string("tv(C): ran scalar is_zero ") + v.label).c_str(), v.result ? 1 : 0, ran_scalar_is_zero(a));
     }
 
     /* ==== Shaw Scalar (C primitives) ==== */
@@ -7707,9 +7614,7 @@ static void test_vector_validation_c_primitives()
         fp_fe a;
         shaw_scalar_from_bytes(a, v.a);
         check_int(
-            (std::string("tv(C): shaw scalar is_zero ") + v.label).c_str(),
-            v.result ? 1 : 0,
-            shaw_scalar_is_zero(a));
+            (std::string("tv(C): shaw scalar is_zero ") + v.label).c_str(), v.result ? 1 : 0, shaw_scalar_is_zero(a));
     }
 
     /* ==== Ran Point (C primitives) ==== */

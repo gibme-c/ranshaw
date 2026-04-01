@@ -67,7 +67,7 @@ static void fq_from_limbs51(fq_fe r, const uint64_t limbs[5])
  * Cannot use shaw_constants.h directly since fq_fe is int32_t[10] on 32-bit.
  */
 static const uint64_t SHAW_B_LIMBS[5] =
-    {0x60983cb5a4558ULL, 0x3e0d5d201cd1bULL, 0x7ff89e7ce512fULL, 0x360bfa8ddd2caULL, 0x7012771369587ULL};
+    {0x3C002DD34C5B1ULL, 0x74516598A55ACULL, 0x22B764C970DBBULL, 0x9A0F7A5E3F44ULL, 0x640657EEA7EFBULL};
 
 /*
  * Deserialize 32 bytes to a Shaw Jacobian point.

@@ -48,22 +48,14 @@ static inline void
     ranshaw_get_dispatch().ran_msm_vartime(result, scalars, points, n);
 }
 #elif RANSHAW_PLATFORM_64BIT
-void ran_msm_vartime_x64(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_x64(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 static inline void
     ran_msm_vartime(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
     ran_msm_vartime_x64(result, scalars, points, n);
 }
 #else
-void ran_msm_vartime_portable(
-    ran_jacobian *result,
-    const unsigned char *scalars,
-    const ran_jacobian *points,
-    size_t n);
+void ran_msm_vartime_portable(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n);
 static inline void
     ran_msm_vartime(ran_jacobian *result, const unsigned char *scalars, const ran_jacobian *points, size_t n)
 {
