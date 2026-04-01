@@ -112,6 +112,7 @@ namespace ranshaw
 
         RanPoint r;
         ran_msm_vartime(&r.jac_, scalar_bytes.data(), jac_points.data(), n);
+        ranshaw_secure_erase(scalar_bytes.data(), scalar_bytes.size());
         return r;
     }
 
@@ -216,6 +217,7 @@ namespace ranshaw
 
         ShawPoint r;
         shaw_msm_vartime(&r.jac_, scalar_bytes.data(), jac_points.data(), n);
+        ranshaw_secure_erase(scalar_bytes.data(), scalar_bytes.size());
         return r;
     }
 
