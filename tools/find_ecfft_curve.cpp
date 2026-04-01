@@ -1840,7 +1840,6 @@ static int fe_is_qr(const fe_t z, const int *pm1_half_bits, int pm1_half_msb, co
 
 static void worker(
     int thread_id,
-    uint64_t trials_start,
     uint64_t trials_count,
     const int *field_bits,
     int field_msb,
@@ -1853,7 +1852,7 @@ static void worker(
     uint64_t user_seed)
 {
     Prng rng;
-    uint64_t base_seed = (uint64_t)thread_id * 0x9E3779B97F4A7C15ULL + trials_start;
+    uint64_t base_seed = (uint64_t)thread_id * 0x9E3779B97F4A7C15ULL;
     rng.seed(user_seed ? (user_seed ^ base_seed) : base_seed);
 
     fe_t a;
@@ -2073,13 +2072,11 @@ static int
     std::vector<std::thread> workers;
     uint64_t per_thread = max_trials / num_threads;
     uint64_t remainder = max_trials % num_threads;
-    uint64_t offset = 0;
     for (int t = 0; t < num_threads; t++)
     {
         uint64_t count = per_thread + (t < remainder ? 1 : 0);
         workers.emplace_back(
-            worker, t, offset, count, bits, msb, pm1_half_bits, pm1_half_msb, min_levels, ops, field, a_int, user_seed);
-        offset += count;
+            worker, t, count, bits, msb, pm1_half_bits, pm1_half_msb, min_levels, ops, field, a_int, user_seed);
     }
     for (auto &w : workers)
         w.join();
