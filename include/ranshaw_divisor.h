@@ -81,10 +81,12 @@ namespace ranshaw
             return div_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         ran_divisor &raw()
         {
             return div_;
         }
+#endif
 
       private:
         ran_divisor div_;
@@ -127,10 +129,12 @@ namespace ranshaw
             return div_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         shaw_divisor &raw()
         {
             return div_;
         }
+#endif
 
       private:
         shaw_divisor div_;

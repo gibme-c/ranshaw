@@ -184,10 +184,12 @@ namespace ranshaw
             return jac_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         ran_jacobian &raw()
         {
             return jac_;
         }
+#endif
 
       private:
         ran_jacobian jac_;
@@ -317,10 +319,12 @@ namespace ranshaw
             return jac_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         shaw_jacobian &raw()
         {
             return jac_;
         }
+#endif
 
       private:
         shaw_jacobian jac_;

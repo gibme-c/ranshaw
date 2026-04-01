@@ -43,16 +43,13 @@
  * - **RanDivisor / ShawDivisor**: EC-divisor witness computation and evaluation.
  *
  * All classes live in the `ranshaw` namespace.
- *
- * For low-level C-style primitives (field elements, Jacobian coordinates,
- * raw function pointers), include ranshaw_primitives.h instead.
  */
 
 #ifndef RANSHAW_H
 #define RANSHAW_H
 
-/* Low-level C-style primitives */
-#include "ranshaw_primitives.h"
+/* Runtime dispatch (ranshaw_init / ranshaw_autotune) */
+#include "ranshaw_dispatch.h"
 
 /* Public C++ API classes */
 #include "ranshaw_divisor.h"

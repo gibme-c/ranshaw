@@ -85,10 +85,12 @@ namespace ranshaw
             return poly_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         fp_poly &raw()
         {
             return poly_;
         }
+#endif
 
       private:
         fp_poly poly_;
@@ -130,10 +132,12 @@ namespace ranshaw
             return poly_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         fq_poly &raw()
         {
             return poly_;
         }
+#endif
 
       private:
         fq_poly poly_;

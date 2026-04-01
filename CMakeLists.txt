@@ -287,6 +287,7 @@ target_link_libraries(ranshaw PUBLIC
 
 # Internal build flags (PRIVATE — not propagated to downstream)
 target_link_libraries(ranshaw PRIVATE ranshaw-build-flags)
+target_compile_definitions(ranshaw PRIVATE RANSHAW_INTERNAL_ACCESS)
 
 # ── Tests ──
 option(BUILD_TESTS "Build unit tests" OFF)
@@ -300,11 +301,13 @@ if(BUILD_TESTS)
 
     add_executable(ranshaw-tests src/tests.cpp)
     target_link_libraries(ranshaw-tests PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-tests PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-tests)
     add_test(NAME ranshaw-tests COMMAND ranshaw-tests)
 
     add_executable(ranshaw-fuzz-tests src/tests_fuzz.cpp)
     target_link_libraries(ranshaw-fuzz-tests PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-fuzz-tests PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-fuzz-tests)
     add_test(NAME ranshaw-fuzz-tests COMMAND ranshaw-fuzz-tests)
 endif()
@@ -320,14 +323,17 @@ if(BUILD_BENCHMARKS)
 
     add_executable(ranshaw-benchmark src/benchmark.cpp)
     target_link_libraries(ranshaw-benchmark PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-benchmark PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-benchmark)
 
     add_executable(ranshaw-benchmark-contest src/benchmark_contest.cpp)
     target_link_libraries(ranshaw-benchmark-contest PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-benchmark-contest PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-benchmark-contest)
 
     add_executable(ranshaw-benchmark-fcmpp src/benchmark_fcmpp.cpp)
     target_link_libraries(ranshaw-benchmark-fcmpp PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-benchmark-fcmpp PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-benchmark-fcmpp)
 
     # Benchmarks are developer tools — relax sign-conversion warnings
@@ -360,6 +366,7 @@ if(BUILD_TOOLS)
 
     add_executable(ranshaw-gen-testvectors tools/gen_test_vectors.cpp)
     target_link_libraries(ranshaw-gen-testvectors PRIVATE ranshaw)
+    target_compile_definitions(ranshaw-gen-testvectors PRIVATE RANSHAW_INTERNAL_ACCESS)
     ranshaw_harden_executable(ranshaw-gen-testvectors)
 
     if(NOT MSVC)

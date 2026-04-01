@@ -164,10 +164,12 @@ namespace ranshaw
             return fe_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         fq_fe &raw()
         {
             return fe_;
         }
+#endif
 
       private:
         fq_fe fe_;
@@ -286,10 +288,12 @@ namespace ranshaw
             return fe_;
         }
 
+#ifdef RANSHAW_INTERNAL_ACCESS
         fp_fe &raw()
         {
             return fe_;
         }
+#endif
 
       private:
         fp_fe fe_;

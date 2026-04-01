@@ -82,7 +82,7 @@ cmake --build build --config Release -j
 
 ## Usage
 
-Include the master header to access the C++ API and all low-level primitives:
+Include the public header to access the C++ API:
 
 ```cpp
 #include "ranshaw.h"
@@ -113,19 +113,7 @@ auto msm = ranshaw::RanPoint::multi_scalar_mul(scalars.data(), points.data(), 2)
 auto div = ranshaw::RanDivisor::compute(points.data(), points.size());
 ```
 
-For low-level C-style primitives only (field elements, Jacobian coordinates, raw function pointers):
-
-```cpp
-#include "ranshaw_primitives.h"
-```
-
-Or include individual headers for specific operations:
-
-```cpp
-#include "fp_mul.h"
-#include "ran_scalarmult.h"
-#include "fq_invert.h"
-```
+The C++ API is the only public interface. All point deserialization goes through `from_bytes()`, which returns `std::optional` and rejects off-curve points. Low-level C-style primitives (`ranshaw_primitives.h`) are internal to the library and not available to downstream consumers.
 
 Link against the `ranshaw` static library target in your CMake project:
 
@@ -147,7 +135,7 @@ The library is organized as a set of independent modules, each with its own `inc
 | **shaw** | `shaw/` | Shaw curve operations -- point ops, scalarmult, MSM, batch affine, map-to-curve |
 | **ec-divisors** | `ec-divisors/` | Polynomial arithmetic, EC-divisor witnesses, divisor evaluation (with SIMD) |
 | **ecfft** | `ecfft/` | ECFFT infrastructure -- precomputed domains, enter/exit/extend/reduce |
-| **api** | `src/api_*.cpp` | Public C++ API classes -- type-safe wrappers over the C-style primitives |
+| **api** | `src/api_*.cpp` | Public C++ API classes (`ranshaw.h`) -- the only supported interface for downstream consumers |
 
 These modules are layered, matching the math of elliptic curve cryptography:
 
@@ -216,8 +204,6 @@ The library automatically selects the best multiplication algorithm based on deg
 
 ### Polynomial API
 
-**C++ API** (recommended):
-
 ```cpp
 using namespace ranshaw;
 
@@ -230,32 +216,11 @@ auto val = p.evaluate(x_bytes);                      // Horner's method
 auto interp = FpPolynomial::interpolate(x_bytes, y_bytes, n);  // Lagrange
 ```
 
-**C-style API** (low-level):
-
-```cpp
-// Multiply: r = a * b (auto-selects schoolbook/Karatsuba/ECFFT)
-void fp_poly_mul(fp_poly *r, const fp_poly *a, const fp_poly *b);
-
-// Evaluate polynomial at a point (Horner's method)
-void fp_poly_eval(fp_fe result, const fp_poly *p, const fp_fe x);
-
-// Build polynomial from roots: (x - r0)(x - r1)...
-void fp_poly_from_roots(fp_poly *r, const fp_fe *roots, size_t n);
-
-// Polynomial division: a = b*q + rem
-void fp_poly_divmod(fp_poly *q, fp_poly *rem, const fp_poly *a, const fp_poly *b);
-
-// Lagrange interpolation from (x, y) pairs
-void fp_poly_interpolate(fp_poly *out, const fp_fe *xs, const fp_fe *ys, size_t n);
-```
-
-All operations are mirrored for F_q (`FqPolynomial` / `fq_poly_*`).
+All operations are mirrored for F_q (`FqPolynomial`).
 
 ### EC-Divisor Witnesses
 
 EC-divisors represent sets of curve points as polynomial pairs a(x) - y·b(x). The divisor "vanishes" (evaluates to zero) at exactly the points it encodes. This is the core primitive used by FCMP++ to prove set membership without revealing which element is being proven.
-
-**C++ API** (recommended):
 
 ```cpp
 using namespace ranshaw;
@@ -264,16 +229,6 @@ auto div = RanDivisor::compute(points, n);           // compute divisor witness
 auto result = div.evaluate(x_bytes, y_bytes);           // evaluate D(x, y)
 const FpPolynomial& a = div.a();                        // access a(x) polynomial
 const FpPolynomial& b = div.b();                        // access b(x) polynomial
-```
-
-**C-style API** (low-level):
-
-```cpp
-// Compute divisor for a set of affine points
-void ran_compute_divisor(ran_divisor *d, const ran_affine *points, size_t n);
-
-// Evaluate divisor at (x, y) -- returns zero iff the point is in the set
-void ran_evaluate_divisor(fp_fe result, const ran_divisor *d, const fp_fe x, const fp_fe y);
 ```
 
 Divisor evaluation is SIMD-accelerated: AVX2 uses 4-way parallelism and IFMA uses 8-way parallelism for batch point evaluation across the evaluation domain.

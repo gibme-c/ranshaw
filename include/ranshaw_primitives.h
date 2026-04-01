@@ -43,10 +43,11 @@
  * - **Divisors (ran_divisor_*, shaw_divisor_*)**: EC-divisor witness
  *   computation and evaluation.
  *
- * This header pulls in all low-level C-style primitives. For the idiomatic
- * C++ API with type safety and std::optional validation, use ranshaw.h.
+ * @note **This is an internal header.** It is not part of the public API.
+ * Include ranshaw.h for the supported C++ API with type safety and
+ * std::optional validation.
  *
- * @note **This is a low-level cryptographic primitive library.** Callers must:
+ * Internal callers must:
  *
  * 1. Validate all externally-received points via frombytes (returns error for
  *    off-curve points).
@@ -57,6 +58,10 @@
 
 #ifndef RANSHAW_PRIMITIVES_H
 #define RANSHAW_PRIMITIVES_H
+
+#ifndef RANSHAW_INTERNAL_ACCESS
+#error "ranshaw_primitives.h is an internal header. Include ranshaw.h for the public C++ API."
+#endif
 
 /* Platform detection, CPUID, dispatch, and secure erase */
 #include "ranshaw_cpuid.h"

@@ -40,6 +40,7 @@
  */
 
 #include "ranshaw.h"
+#include "ranshaw_primitives.h"
 
 #include <cstdio>
 #include <cstring>
