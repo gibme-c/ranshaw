@@ -28,7 +28,7 @@
  * @file ran_frombytes.h
  * @brief Compressed point deserialization for Ran with on-curve validation.
  *
- * Rejects off-curve points (weak twist security is ~107 bits for Ran).
+ * Rejects off-curve points.
  */
 
 #ifndef RANSHAW_RAN_FROMBYTES_H

@@ -49,7 +49,7 @@
  * @note **This is a low-level cryptographic primitive library.** Callers must:
  *
  * 1. Validate all externally-received points via frombytes (returns error for
- *    off-curve points). Weak twist security is ~99-107 bits.
+ *    off-curve points).
  * 2. Use constant-time scalar multiplication for secret scalars, and _vartime
  *    functions only for public data.
  * 3. Zero sensitive data after use via ranshaw_secure_erase().

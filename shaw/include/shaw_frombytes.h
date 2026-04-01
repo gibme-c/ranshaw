@@ -28,7 +28,7 @@
  * @file shaw_frombytes.h
  * @brief Compressed point deserialization for Shaw with on-curve validation.
  *
- * Rejects off-curve points (weak twist security is ~99 bits for Shaw).
+ * Rejects off-curve points.
  */
 
 #ifndef RANSHAW_SHAW_FROMBYTES_H
