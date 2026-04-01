@@ -27,12 +27,12 @@ import sys
 p = 2**255 - 19
 q = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF4BB1EB0E39730FA771684645EC70F85F
 
-# Ran (Helios) over Fp: y^2 = x^3 - 3x + b
+# Ran over Fp: y^2 = x^3 - 3x + b
 ran_b = 0x4153F5EAB5C57B60FFB710A4CD92E79AAB8F66787D603C262AF05AE9F1D1D36E
 ran_gx = 0x44CD9962FA942343B3FD1E677A42235C7120510B2F09D9FB88FDD3F5ABD6F63B
 ran_gy = 0x0BEAB1C489555A9C2019D081CED2EE7938C6E428013270092EF544CE79A2C13F
 
-# Shaw (Selene) over Fq: y^2 = x^3 - 3x + b
+# Shaw over Fq: y^2 = x^3 - 3x + b
 shaw_b = 0x640657EEA7EFB1341EF4BC7E888ADD9325C36EFA28B2CC52AD63C002DD34C5B1
 shaw_gx = 0x3A8B78295E7C33EF06C70AFF52BFC74A6924096F7CC0F251C13265FA80B76BF4
 shaw_gy = 0x047D87BC8873BB741E4069FCEC8ECAFB07765859AF4FBFDDB923532F445198CB
@@ -197,7 +197,7 @@ def emit_table(curve_name, display_name, var_name, G, a, m, out_path):
     """
     Generate and write a .inl file containing 16 precomputed multiples of G.
 
-    curve_name:   name for the auto-generated comment (e.g. "helios", "selene")
+    curve_name:   name for the auto-generated comment (e.g. "ran", "shaw")
     display_name: not used in file content, kept for parity
     var_name:     C variable name (e.g. "RAN_G_TABLE_BYTES")
     G:            generator point (x, y)
@@ -246,14 +246,14 @@ def main():
     # Curve coefficient a = -3
     a_coeff = -3
 
-    # Ran (Helios) over Fp
+    # Ran over Fp
     Gh = (ran_gx, ran_gy)
     # Verify generator is on curve: y^2 == x^3 + ax + b (mod p)
     lhs = (ran_gy * ran_gy) % p
     rhs = (ran_gx**3 + a_coeff * ran_gx + ran_b) % p
     assert lhs == rhs, "Ran generator not on curve"
 
-    # Shaw (Selene) over Fq
+    # Shaw over Fq
     Gs = (shaw_gx, shaw_gy)
     lhs = (shaw_gy * shaw_gy) % q
     rhs = (shaw_gx**3 + a_coeff * shaw_gx + shaw_b) % q
