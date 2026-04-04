@@ -33,16 +33,22 @@ include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 
 if(MSVC)
+    # Replace CMake's default /W3 with /W4 to avoid D9025 override warning
+    string(REPLACE "/W3" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
     target_compile_options(ranshaw-build-flags INTERFACE
         /W4 /GS /sdl /guard:cf /wd4267 /wd4804 /D_DLL
         # Debug: enable inlining + intrinsics even in debug for usable perf
         $<$<CONFIG:Debug>:/Ob2 /Oi>
     )
 
-    # Spectre mitigation
-    check_cxx_compiler_flag("/Qspectre" HAS_QSPECTRE)
-    if(HAS_QSPECTRE)
-        target_compile_options(ranshaw-build-flags INTERFACE /Qspectre)
+    # Spectre mitigation (opt-in; significantly increases MSVC compile time)
+    option(ENABLE_SPECTRE_MITIGATIONS "Enable MSVC Spectre mitigations (/Qspectre)" OFF)
+    if(ENABLE_SPECTRE_MITIGATIONS)
+        check_cxx_compiler_flag("/Qspectre" HAS_QSPECTRE)
+        if(HAS_QSPECTRE)
+            target_compile_options(ranshaw-build-flags INTERFACE /Qspectre)
+        endif()
     endif()
 
     # CET shadow stack (newer MSVC only)
@@ -112,9 +118,9 @@ endif()
 # than guessing the linker style.
 function(ranshaw_harden_executable target)
     if(MSVC)
-        # PE linker hardening — DEP + ASLR
+        # PE linker hardening — DEP + ASLR + CFG
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS
-            " /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA")
+            " /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA /guard:cf")
         # CET shadow stack compatibility — compile AND link flags must match
         if(HAS_GUARD_EHCONT)
             target_compile_options(${target} PRIVATE /guard:ehcont)

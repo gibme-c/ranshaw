@@ -75,11 +75,21 @@ jobs:
         if: matrix.os == 'macos-latest' && matrix.name == 'clang'
         run: brew install llvm || brew upgrade llvm
 
+      - name: Setup MSVC environment
+        if: matrix.name == 'msvc'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+
       - name: Configure
+        shell: bash
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake -S . -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON -DENABLE_ECFFT=ON ${{ matrix.cmake_flags }}
+        run: |
+          EXTRA=""
+          if [ "${{ matrix.name }}" = "msvc" ]; then
+            EXTRA="-G Ninja -DCMAKE_BUILD_TYPE=Release"
+          fi
+          cmake -S . -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON -DENABLE_ECFFT=ON $EXTRA ${{ matrix.cmake_flags }}
 
       - name: Build
         run: cmake --build build --config Release -j
@@ -88,10 +98,10 @@ jobs:
         id: exe
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ] && [ "${{ matrix.name }}" = "msvc" ]; then
-            echo "tests=./build/Release/ranshaw-tests.exe" >> "$GITHUB_OUTPUT"
-            echo "fuzz=./build/Release/ranshaw-fuzz-tests.exe" >> "$GITHUB_OUTPUT"
-            echo "bench=./build/Release/ranshaw-benchmark.exe" >> "$GITHUB_OUTPUT"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo "tests=./build/ranshaw-tests.exe" >> "$GITHUB_OUTPUT"
+            echo "fuzz=./build/ranshaw-fuzz-tests.exe" >> "$GITHUB_OUTPUT"
+            echo "bench=./build/ranshaw-benchmark.exe" >> "$GITHUB_OUTPUT"
           else
             echo "tests=./build/ranshaw-tests" >> "$GITHUB_OUTPUT"
             echo "fuzz=./build/ranshaw-fuzz-tests" >> "$GITHUB_OUTPUT"

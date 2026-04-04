@@ -51,15 +51,18 @@ Both curves have the form **y² = x³ - 3x + b** (the a = -3 optimization enable
 Requires CMake 3.10+ and a C++17 compiler. No external dependencies.
 
 ```bash
-# Configure
+# Configure (Linux/macOS)
 cmake -S . -B build -DBUILD_TESTS=ON
+
+# Configure (Windows -- use Ninja for single-config output)
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 
 # Build
 cmake --build build --config Release -j
 
 # Run tests
 ./build/ranshaw-tests         # Linux/macOS
-.\build\Release\ranshaw-tests.exe  # Windows (MSVC)
+.\build\ranshaw-tests.exe     # Windows
 ```
 
 ### CMake Options
@@ -73,6 +76,7 @@ cmake --build build --config Release -j
 | `ENABLE_AVX2` | `ON`* | Enable AVX2 SIMD backend with runtime dispatch |
 | `ENABLE_AVX512` | `ON`* | Enable AVX-512 IFMA SIMD backend with runtime dispatch |
 | `ENABLE_ECFFT` | `OFF` | Enable ECFFT polynomial multiplication for large degrees |
+| `ENABLE_SPECTRE_MITIGATIONS` | `OFF` | Enable MSVC Spectre mitigations (`/Qspectre`) |
 | `ENABLE_LTO` | `OFF` | Enable link-time optimization |
 | `ENABLE_ASAN` | `OFF` | Enable AddressSanitizer (GCC/Clang only) |
 | `ENABLE_UBSAN` | `OFF` | Enable UndefinedBehaviorSanitizer (GCC/Clang only) |

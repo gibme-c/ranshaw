@@ -34,9 +34,6 @@
 
 #include "portable/fp25_inline.h"
 
-#define fp25_chain_mul fp25_mul_inline
-#define fp25_chain_sq fp25_sq_inline
-
 static RANSHAW_FORCE_INLINE void fp25_sq2_inline(fp_fe h, const fp_fe f)
 {
     int32_t f0 = f[0], f1 = f[1], f2 = f[2], f3 = f[3], f4 = f[4];
@@ -120,8 +117,6 @@ static RANSHAW_FORCE_INLINE void fp25_sq2_inline(fp_fe h, const fp_fe f)
     h[9] = (int32_t)h9;
 }
 
-#define fp25_chain_sq2 fp25_sq2_inline
-
 static RANSHAW_FORCE_INLINE void fp25_sqn_inline(fp_fe h, const fp_fe f, int n)
 {
     fp25_sq_inline(h, f);
@@ -129,6 +124,29 @@ static RANSHAW_FORCE_INLINE void fp25_sqn_inline(fp_fe h, const fp_fe f, int n)
         fp25_sq_inline(h, h);
 }
 
+#if defined(_MSC_VER)
+
+/*
+ * MSVC's c2.dll optimizer goes superlinear on long chains of __forceinline
+ * field operations. Use non-inline function calls for chain operations.
+ */
+void fp_mul_portable(fp_fe h, const fp_fe f, const fp_fe g);
+void fp_sq_portable(fp_fe h, const fp_fe f);
+void fp_sq2_portable(fp_fe h, const fp_fe f);
+void fp_sqn_portable(fp_fe h, const fp_fe f, int n);
+
+#define fp25_chain_mul fp_mul_portable
+#define fp25_chain_sq fp_sq_portable
+#define fp25_chain_sq2 fp_sq2_portable
+#define fp25_chain_sqn fp_sqn_portable
+
+#else
+
+#define fp25_chain_mul fp25_mul_inline
+#define fp25_chain_sq fp25_sq_inline
+#define fp25_chain_sq2 fp25_sq2_inline
 #define fp25_chain_sqn fp25_sqn_inline
+
+#endif /* _MSC_VER */
 
 #endif // RANSHAW_PORTABLE_FP25_CHAIN_H

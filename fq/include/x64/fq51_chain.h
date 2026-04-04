@@ -32,6 +32,27 @@
 #ifndef RANSHAW_X64_FQ51_CHAIN_H
 #define RANSHAW_X64_FQ51_CHAIN_H
 
+#if defined(_MSC_VER)
+
+/*
+ * MSVC's c2.dll optimizer goes superlinear on long chains of __forceinline
+ * field operations (fq_sqrt alone triggers 252 squarings + 50 multiplications).
+ * Use non-inline function calls for chain operations to keep compile times sane.
+ */
+#include "fq.h"
+
+void fq_mul_x64(fq_fe h, const fq_fe f, const fq_fe g);
+void fq_sq_x64(fq_fe h, const fq_fe f);
+void fq_sq2_x64(fq_fe h, const fq_fe f);
+void fq_sqn_x64(fq_fe h, const fq_fe f, int n);
+
+#define fq51_chain_mul fq_mul_x64
+#define fq51_chain_sq fq_sq_x64
+#define fq51_chain_sq2 fq_sq2_x64
+#define fq51_chain_sqn fq_sqn_x64
+
+#else
+
 #include "x64/fq51_inline.h"
 
 #define fq51_chain_mul fq51_mul_inline
@@ -65,5 +86,7 @@ static RANSHAW_FORCE_INLINE void fq51_sqn_inline(fq_fe h, const fq_fe f, int n)
 #endif
 
 #define fq51_chain_sqn fq51_sqn_inline
+
+#endif /* _MSC_VER */
 
 #endif // RANSHAW_X64_FQ51_CHAIN_H
